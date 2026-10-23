@@ -266,18 +266,11 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
       const dishId = activeCropItem.target.dishId;
       setDishes(prev => prev.map(d => {
         if (d.id === dishId) {
-          const currentPhotos = d.photos || [];
-          if (activeCropItem.originalIdx !== undefined) {
-            return {
-              ...d,
-              photos: currentPhotos.map((p, i) => i === activeCropItem.originalIdx ? croppedBase64 : p)
-            };
-          } else {
-            return {
-              ...d,
-              photos: [...currentPhotos, croppedBase64]
-            };
-          }
+          // 餐點固定為一張照片
+          return {
+            ...d,
+            photos: [croppedBase64]
+          };
         }
         return d;
       }));
@@ -306,14 +299,13 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
       }
     } else {
       const dishId = activeCropItem.target.dishId;
-      if (activeCropItem.originalIdx === undefined) {
-        setDishes(prev => prev.map(d => {
-          if (d.id === dishId) {
-            return { ...d, photos: [...(d.photos || []), finalBase64] };
-          }
-          return d;
-        }));
-      }
+      setDishes(prev => prev.map(d => {
+        if (d.id === dishId) {
+          // 餐點固定為一張照片
+          return { ...d, photos: [finalBase64] };
+        }
+        return d;
+      }));
     }
 
     advanceCropQueue();
@@ -346,14 +338,13 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
     setCurrentCropIndex(0);
   };
 
-  // 對已上傳的餐點照片重新裁切
-  const handleRecropDishPhoto = (dishId: string, pIdx: number, photoUrl: string) => {
+  // 對已上傳的餐點照片重新裁切（單張照片）
+  const handleRecropDishPhoto = (dishId: string, photoUrl: string) => {
     soundManager.playPop();
     setCropQueue([{
       id: `crop-recrop-${Date.now()}`,
       dataUrl: photoUrl,
-      target: { dishId },
-      originalIdx: pIdx
+      target: { dishId }
     }]);
     setCurrentCropIndex(0);
   };
@@ -392,17 +383,24 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
 
   const addDish = () => {
     soundManager.playPop();
+    const newId = `dish-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const newDish: DishRecord = {
-      id: `dish-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: newId,
       name: '',
       opinion: 'like',
       note: '',
       photos: []
     };
-    setDishes([...dishes, newDish]);
+    // 將新餐點直接加入清單最上方，填寫表直接呈現在眼前，無需捲動至底部
+    setDishes([newDish, ...dishes]);
     if (!featuredDishId) {
-      setFeaturedDishId(newDish.id);
+      setFeaturedDishId(newId);
     }
+    // 自動將輸入游標聚焦至新餐點的名稱輸入框
+    setTimeout(() => {
+      const el = document.getElementById(`dish-name-input-${newId}`);
+      if (el) el.focus();
+    }, 60);
   };
 
   const updateDish = (id: string, field: keyof DishRecord, val: unknown) => {
@@ -419,34 +417,28 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
   };
 
   const handleDishPhotoUpload = async (dishId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     soundManager.playPop();
-    const newQueueItems: CropQueueItem[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const dataUrl = await readFileAsDataURL(file);
-      newQueueItems.push({
-        id: `crop-${Date.now()}-${i}`,
-        dataUrl,
-        file,
-        target: { dishId }
-      });
-    }
+    const dataUrl = await readFileAsDataURL(file);
+    const newQueueItem: CropQueueItem = {
+      id: `crop-${Date.now()}-0`,
+      dataUrl,
+      file,
+      target: { dishId }
+    };
 
     e.target.value = '';
-    setCropQueue(newQueueItems);
+    setCropQueue([newQueueItem]);
     setCurrentCropIndex(0);
   };
 
-  const removeDishPhoto = (dishId: string, photoIdx: number) => {
+  const removeDishPhoto = (dishId: string) => {
     soundManager.playPop();
     setDishes(prev => prev.map(d => {
       if (d.id === dishId) {
-        const currentPhotos = d.photos || [];
-        return { ...d, photos: currentPhotos.filter((_, i) => i !== photoIdx) };
+        return { ...d, photos: [] };
       }
       return d;
     }));
@@ -1021,7 +1013,7 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
                   <span>🍽️ 吃過什麼？（必點與避雷紀錄）</span>
                 </h3>
                 <p className={`text-sm ${isChef ? 'text-[#8A5A38]' : 'text-japandi-text-muted'}`}>
-                  標記「必點/避雷」，點擊星星 ★ 即可自訂此店在「餐廳菜單」模式展示的代表餐點！
+                  標記「必點/避雷」，點擊星星 ★ 即可自訂此店在「美味佳餚」模式展示的代表餐點！
                 </p>
               </div>
 
@@ -1040,219 +1032,202 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
             </div>
 
             <div className="space-y-3">
-              {dishes.map((dish) => (
-                <div
-                  key={dish.id}
-                  className={`p-4 rounded-2xl border-2 transition-all ${
-                    dish.opinion === 'like'
-                      ? (isChef ? 'bg-[#FFFDF9] border-[#F2E6D8] shadow-sm' : 'bg-[#F2F7F3] border-[#CFE1D4]')
-                      : dish.opinion === 'dislike'
-                      ? (isChef ? 'bg-[#FFFDF9] border-[#F8CEC7] shadow-sm' : 'bg-[#FCF2F0] border-[#F2D1CB]')
-                      : (isChef ? 'bg-[#FFFDF9] border-[#EADFCF] shadow-sm' : 'bg-white border-[#EDE6DC]')
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                    <input
-                      type="text"
-                      value={dish.name}
-                      onChange={(e) => updateDish(dish.id, 'name', e.target.value)}
-                      placeholder="餐點名稱（例：清燉牛肉麵、起司豬排）"
-                      className={`flex-1 min-w-0 w-full sm:w-auto px-3.5 py-2 rounded-xl border-2 text-sm sm:text-base font-bold focus:outline-none bg-white transition-all ${
-                        isChef
-                          ? 'border-[#E5DACB] focus:border-[#D85A2A] text-[#4A2613] placeholder-[#A8907E]'
-                          : 'border-[#DCD3C6] focus:border-japandi-sage text-japandi-text'
-                      }`}
-                    />
-
-                    {/* 評價切換與刪除區塊 */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-between sm:justify-start">
-                      {/* Menu 代表標記按鈕：單一星星圖示，不帶任何文字 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFeaturedDishId(featuredDishId === dish.id ? undefined : dish.id);
-                          soundManager.playPop();
-                        }}
-                        className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer select-none shrink-0 border-2 active:scale-95 ${
-                          featuredDishId === dish.id
-                            ? (isChef
-                                ? 'bg-[#FFF2E2] border-[#D85A2A] text-[#D85A2A] shadow-sm'
-                                : 'bg-[#EBF3ED] border-japandi-sage text-japandi-sage-dark shadow-soft')
-                            : (isChef
-                                ? 'bg-white border-[#E5DACB] text-stone-300 hover:text-[#D85A2A] hover:border-[#D85A2A]/40'
-                                : 'bg-white border-[#EDE6DC] text-stone-300 hover:text-japandi-sage hover:border-japandi-sage/40')
-                        }`}
-                        title={featuredDishId === dish.id ? "菜單代表餐點（點擊取消）" : "設為菜單代表餐點"}
-                      >
-                        <Star
-                          className={`w-5 h-5 transition-transform ${
-                            featuredDishId === dish.id
-                              ? 'fill-current scale-110'
-                              : 'stroke-[2] hover:scale-110'
-                          }`}
-                        />
-                      </button>
-
-                      {/* 評價切換按鈕組 */}
-                      <div className={`flex-1 sm:flex-initial flex items-center gap-1 bg-white p-1 rounded-xl border-2 shrink-0 ${
-                        isChef ? 'border-[#E5DACB]' : 'border-[#EDE6DC]'
-                      }`}>
-                        <button
-                          type="button"
-                          onClick={() => { updateDish(dish.id, 'opinion', 'like' as OpinionType); soundManager.playPop(); }}
-                          className={`flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm font-black whitespace-nowrap transition-all cursor-pointer select-none ${
-                            dish.opinion === 'like'
-                              ? (isChef ? 'bg-[#D85A2A] text-white shadow-sm' : 'bg-japandi-sage text-white shadow-soft')
-                              : (isChef ? 'text-[#8A5A38] hover:text-[#D85A2A]' : 'text-japandi-text-muted hover:text-japandi-sage')
-                          }`}
-                        >
-                          <span>{isChef ? '⭐ 必點' : '💮 必點'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => { updateDish(dish.id, 'opinion', 'dislike' as OpinionType); soundManager.playPop(); }}
-                          className={`flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-sm font-black whitespace-nowrap transition-all cursor-pointer select-none ${
-                            dish.opinion === 'dislike'
-                              ? (isChef ? 'bg-[#C73E29] text-white shadow-sm' : 'bg-japandi-terracotta text-white shadow-soft')
-                            : (isChef ? 'text-[#8A5A38] hover:text-[#C73E29]' : 'text-japandi-text-muted hover:text-japandi-terracotta')
-                          }`}
-                        >
-                          <span>{isChef ? '⚠️ 避雷' : '⚠️ 避雷'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => { updateDish(dish.id, 'opinion', 'neutral' as OpinionType); soundManager.playPop(); }}
-                          className={`flex-1 sm:flex-initial flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all cursor-pointer select-none ${
-                            dish.opinion === 'neutral'
-                              ? (isChef ? 'bg-[#F4ECE1] text-[#7A543E]' : 'bg-japandi-oat text-japandi-text')
-                              : (isChef ? 'text-[#8A5A38] hover:text-[#4A2613]' : 'text-japandi-text-muted hover:text-japandi-text')
-                          }`}
-                        >
-                          <span>普通</span>
-                        </button>
+              {dishes.map((dish) => {
+                const dishPhoto = dish.photos && dish.photos.length > 0 ? dish.photos[0] : null;
+                return (
+                  <div
+                    key={dish.id}
+                    className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all animate-fadeIn ${
+                      dish.opinion === 'like'
+                        ? (isChef ? 'bg-[#FFFDF9] border-[#F2E6D8] shadow-sm' : 'bg-[#F2F7F3] border-[#CFE1D4]')
+                        : dish.opinion === 'dislike'
+                        ? (isChef ? 'bg-[#FFFDF9] border-[#F8CEC7] shadow-sm' : 'bg-[#FCF2F0] border-[#F2D1CB]')
+                        : (isChef ? 'bg-[#FFFDF9] border-[#EADFCF] shadow-sm' : 'bg-white border-[#EDE6DC]')
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      {/* 左側：單張餐點照片（上傳／預覽） */}
+                      <div className="shrink-0">
+                        {dishPhoto ? (
+                          <div className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 shadow-sm group bg-white ${
+                            isChef ? 'border-[#E5DACB]' : 'border-[#DCD3C6]'
+                          }`}>
+                            <SafeImage 
+                              src={dishPhoto} 
+                              alt={dish.name || '餐點照片'} 
+                              className="w-full h-full object-cover" 
+                            />
+                            {/* 重新裁切照片 */}
+                            <button
+                              type="button"
+                              onClick={() => handleRecropDishPhoto(dish.id, dishPhoto)}
+                              className={`absolute bottom-1 left-1 p-1.5 text-white rounded-lg transition-colors cursor-pointer ${
+                                isChef ? 'bg-black/60 hover:bg-[#D85A2A]' : 'bg-black/60 hover:bg-japandi-sage'
+                              }`}
+                              title="重新裁切構圖"
+                            >
+                              <Crop className="w-3.5 h-3.5" />
+                            </button>
+                            {/* 刪除照片 */}
+                            <button
+                              type="button"
+                              onClick={() => removeDishPhoto(dish.id)}
+                              className={`absolute top-1 right-1 p-1.5 text-white rounded-lg transition-colors cursor-pointer ${
+                                isChef ? 'bg-black/60 hover:bg-[#C73E29]' : 'bg-black/60 hover:bg-japandi-terracotta'
+                              }`}
+                              title="移除照片"
+                            >
+                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label 
+                            className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${
+                              isChef
+                                ? 'border-[#E0D4C5] hover:border-[#D85A2A] bg-white hover:bg-[#FFF9EE] text-[#8A5A38] hover:text-[#D85A2A]'
+                                : 'border-[#D5C7B5] hover:border-japandi-sage bg-white hover:bg-japandi-oat/60 text-japandi-text-muted hover:text-japandi-sage'
+                            } ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="上傳這道餐點的照片（一張）"
+                          >
+                            <Camera className="w-5 h-5" />
+                            <span className="text-[11px] font-bold">加照片</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={isCompressing}
+                              className="hidden"
+                              onChange={(e) => handleDishPhotoUpload(dish.id, e)}
+                            />
+                          </label>
+                        )}
                       </div>
 
-                      {/* 刪除按鈕 */}
-                      <button
-                        type="button"
-                        onClick={() => removeDish(dish.id)}
-                        className={`p-2 rounded-lg transition-colors shrink-0 cursor-pointer ${
-                          isChef
-                            ? 'text-[#9A7B68] hover:text-[#C73E29] hover:bg-[#FDF1EF]'
-                            : 'text-japandi-text-muted hover:text-japandi-terracotta hover:bg-japandi-oat'
-                        }`}
-                        title="刪除這道餐點"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5">
-                    <input
-                      type="text"
-                      value={dish.note || ''}
-                      onChange={(e) => updateDish(dish.id, 'note', e.target.value)}
-                      placeholder={
-                        dish.opinion === 'like'
-                          ? '推薦原因（例：牛肉軟嫩湯很甜、小朋友吃光光）'
-                          : dish.opinion === 'dislike'
-                          ? '避雷原因（例：超級辣！小孩吃一口狂灌水）'
-                          : '餐點備註（選填）'
-                      }
-                      className={`w-full px-3.5 py-2 rounded-lg border-2 text-sm focus:outline-none bg-white transition-all ${
-                        isChef
-                          ? 'border-[#EADFCF] focus:border-[#D85A2A] text-[#4A2613] placeholder-[#A8907E]'
-                          : 'border-[#EDE6DC] focus:border-japandi-sage text-japandi-text'
-                      }`}
-                    />
-                  </div>
-
-                  {/* 餐點照片上傳與縮圖清單 */}
-                  <div className={`mt-3 pt-2.5 border-t border-dashed ${
-                    isChef ? 'border-[#EADFCF]' : 'border-[#E3D9CC]'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className={`text-xs font-bold flex items-center gap-1 ${
-                        isChef ? 'text-[#8A5A38]' : 'text-japandi-text-muted'
-                      }`}>
-                        <Camera className={`w-3.5 h-3.5 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage'}`} />
-                        <span>餐點照片（{(dish.photos || []).length} 張）</span>
-                      </span>
-                      <span className={`text-xs font-bold ${
-                        isChef ? 'text-[#2D7A46]' : 'text-japandi-sage-dark font-medium'
-                      }`}>
-                        ✨ 自動同步至首圖輪播
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                      {/* 已上傳的照片縮圖 */}
-                      {(dish.photos || []).map((photo, pIdx) => (
-                        <div 
-                          key={pIdx} 
-                          className={`relative w-16 h-16 shrink-0 rounded-xl overflow-hidden border-2 shadow-sm group bg-white ${
-                            isChef ? 'border-[#EADFCF]' : 'border-[#DCD3C6] shadow-soft'
-                          }`}
-                        >
-                          <SafeImage 
-                            src={photo} 
-                            alt={`${dish.name || '餐點'}照片`} 
-                            className="w-full h-full object-cover" 
+                      {/* 右側：餐點名稱、Menu代表星星、評價選擇、推薦原因、刪除按鈕 */}
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        {/* 第一行：餐點名稱 ＋ ⭐ Menu 代表星星 ＋ 刪除按鈕 */}
+                        <div className="flex items-center gap-2">
+                          <input
+                            id={`dish-name-input-${dish.id}`}
+                            type="text"
+                            value={dish.name}
+                            onChange={(e) => updateDish(dish.id, 'name', e.target.value)}
+                            placeholder="餐點名稱（例：清燉牛肉麵、起司豬排）"
+                            className={`flex-1 min-w-0 px-3.5 py-2 rounded-xl border-2 text-sm sm:text-base font-bold focus:outline-none bg-white transition-all ${
+                              isChef
+                                ? 'border-[#E5DACB] focus:border-[#D85A2A] text-[#4A2613] placeholder-[#A8907E]'
+                                : 'border-[#DCD3C6] focus:border-japandi-sage text-japandi-text'
+                            }`}
                           />
-                          {/* 重新裁切照片 */}
+
+                          {/* Menu 代表標記按鈕：單一星星圖示 ⭐ */}
                           <button
                             type="button"
-                            onClick={() => handleRecropDishPhoto(dish.id, pIdx, photo)}
-                            className={`absolute bottom-1 left-1 p-1 text-white rounded-md transition-colors cursor-pointer ${
-                              isChef ? 'bg-black/60 hover:bg-[#D85A2A]' : 'bg-black/60 hover:bg-japandi-sage'
+                            onClick={() => {
+                              setFeaturedDishId(featuredDishId === dish.id ? undefined : dish.id);
+                              soundManager.playPop();
+                            }}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer select-none shrink-0 border-2 active:scale-95 ${
+                              featuredDishId === dish.id
+                                ? (isChef
+                                    ? 'bg-[#FFF2E2] border-[#D85A2A] text-[#D85A2A] shadow-sm'
+                                    : 'bg-[#EBF3ED] border-japandi-sage text-japandi-sage-dark shadow-soft')
+                                : (isChef
+                                    ? 'bg-white border-[#E5DACB] text-stone-300 hover:text-[#D85A2A] hover:border-[#D85A2A]/40'
+                                    : 'bg-white border-[#EDE6DC] text-stone-300 hover:text-japandi-sage hover:border-japandi-sage/40')
                             }`}
-                            title="重新裁切構圖"
+                            title={featuredDishId === dish.id ? "菜單代表餐點（點擊取消）" : "設為菜單代表餐點（Menu 代表 ⭐）"}
                           >
-                            <Crop className="w-3 h-3" />
+                            <Star
+                              className={`w-5 h-5 transition-transform ${
+                                featuredDishId === dish.id
+                                  ? 'fill-current scale-110 text-amber-500'
+                                  : 'stroke-[2] hover:scale-110'
+                              }`}
+                            />
                           </button>
-                          {/* 刪除照片 */}
+
+                          {/* 刪除按鈕 */}
                           <button
                             type="button"
-                            onClick={() => removeDishPhoto(dish.id, pIdx)}
-                            className={`absolute top-1 right-1 p-1 text-white rounded-md transition-colors cursor-pointer ${
-                              isChef ? 'bg-black/60 hover:bg-[#C73E29]' : 'bg-black/60 hover:bg-japandi-terracotta'
+                            onClick={() => removeDish(dish.id)}
+                            className={`p-2 rounded-xl transition-colors shrink-0 cursor-pointer ${
+                              isChef
+                                ? 'text-[#9A7B68] hover:text-[#C73E29] hover:bg-[#FDF1EF]'
+                                : 'text-japandi-text-muted hover:text-japandi-terracotta hover:bg-japandi-oat'
                             }`}
-                            title="刪除這張照片"
+                            title="刪除這道餐點"
                           >
-                            <X className="w-3 h-3 stroke-[2.5]" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      ))}
 
-                      {/* 上傳照片按鈕 */}
-                      <label 
-                        className={`w-16 h-16 shrink-0 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
-                          isChef
-                            ? 'border-[#E0D4C5] hover:border-[#D85A2A] bg-white hover:bg-[#FFF9EE] text-[#8A5A38] hover:text-[#D85A2A]'
-                            : 'border-[#D5C7B5] hover:border-japandi-sage bg-white hover:bg-japandi-oat/60 text-japandi-text-muted hover:text-japandi-sage'
-                        } ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title="上傳這道餐點的照片"
-                      >
-                        <Camera className="w-4 h-4" />
-                        <span className="text-[11px] font-bold">加照片</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          disabled={isCompressing}
-                          className="hidden"
-                          onChange={(e) => handleDishPhotoUpload(dish.id, e)}
-                        />
-                      </label>
+                        {/* 第二行：評價選擇 ＋ 原因備註 */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className={`flex items-center gap-1 bg-white p-1 rounded-xl border-2 shrink-0 ${
+                            isChef ? 'border-[#E5DACB]' : 'border-[#EDE6DC]'
+                          }`}>
+                            <button
+                              type="button"
+                              onClick={() => { updateDish(dish.id, 'opinion', 'like' as OpinionType); soundManager.playPop(); }}
+                              className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black whitespace-nowrap transition-all cursor-pointer select-none ${
+                                dish.opinion === 'like'
+                                  ? (isChef ? 'bg-[#D85A2A] text-white shadow-sm' : 'bg-japandi-sage text-white shadow-soft')
+                                  : (isChef ? 'text-[#8A5A38] hover:text-[#D85A2A]' : 'text-japandi-text-muted hover:text-japandi-sage')
+                              }`}
+                            >
+                              <span>{isChef ? '⭐ 必點' : '💮 必點'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => { updateDish(dish.id, 'opinion', 'dislike' as OpinionType); soundManager.playPop(); }}
+                              className={`flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-black whitespace-nowrap transition-all cursor-pointer select-none ${
+                                dish.opinion === 'dislike'
+                                  ? (isChef ? 'bg-[#C73E29] text-white shadow-sm' : 'bg-japandi-terracotta text-white shadow-soft')
+                                  : (isChef ? 'text-[#8A5A38] hover:text-[#C73E29]' : 'text-japandi-text-muted hover:text-japandi-terracotta')
+                              }`}
+                            >
+                              <span>⚠️ 避雷</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => { updateDish(dish.id, 'opinion', 'neutral' as OpinionType); soundManager.playPop(); }}
+                              className={`flex items-center justify-center px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer select-none ${
+                                dish.opinion === 'neutral'
+                                  ? (isChef ? 'bg-[#F4ECE1] text-[#7A543E]' : 'bg-japandi-oat text-japandi-text')
+                                  : (isChef ? 'text-[#8A5A38] hover:text-[#4A2613]' : 'text-japandi-text-muted hover:text-japandi-text')
+                              }`}
+                            >
+                              <span>普通</span>
+                            </button>
+                          </div>
+
+                          <input
+                            type="text"
+                            value={dish.note || ''}
+                            onChange={(e) => updateDish(dish.id, 'note', e.target.value)}
+                            placeholder={
+                              dish.opinion === 'like'
+                                ? '推薦原因（例：牛肉軟嫩湯很甜）'
+                                : dish.opinion === 'dislike'
+                                ? '避雷原因（例：超級辣！小孩吃一口狂灌水）'
+                                : '餐點備註（選填）'
+                            }
+                            className={`flex-1 min-w-0 w-full px-3.5 py-1.5 rounded-xl border-2 text-xs sm:text-sm focus:outline-none bg-white transition-all ${
+                              isChef
+                                ? 'border-[#EADFCF] focus:border-[#D85A2A] text-[#4A2613] placeholder-[#A8907E]'
+                                : 'border-[#EDE6DC] focus:border-japandi-sage text-japandi-text'
+                            }`}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
-              {dishes.length === 0 && (
+                            {dishes.length === 0 && (
                 <div 
                   onClick={addDish}
                   className={`border-2 border-dashed bg-white rounded-2xl p-4 text-center cursor-pointer transition-all ${

@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   const isChef = theme === 'chef_menu';
 
   return (
-    <header className={`sticky top-0 z-30 transition-all duration-300 ${
+    <header className={`sticky top-0 z-40 transition-all duration-300 ${
       isChef 
         ? 'bg-[#4A2613]/95 backdrop-blur-md border-b-4 border-[#F3A935] shadow-md' 
         : 'bg-[#F7F2EC]/95 backdrop-blur-md border-b border-[#E8E1D5]'

@@ -25,7 +25,6 @@ import { CloudConfigModal } from './components/CloudConfigModal';
 import { BackupModal } from './components/BackupModal';
 import { AdminLockModal } from './components/AdminLockModal';
 import { 
-  DoodleStar, 
   DoodleCarrot, 
   DoodleStrawberry, 
   DoodleTomato, 
@@ -305,7 +304,7 @@ export const App: React.FC = () => {
   return (
     <div className={`min-h-screen ${
       isChef ? 'bg-[#FFFDF6] text-[#422110]' : 'bg-[#F7F2EC] text-japandi-text'
-    } pb-24 sm:pb-16 flex flex-col font-comic selection:bg-[#F3A935] selection:text-[#4A2613] relative overflow-x-hidden transition-colors duration-300`}>
+    } pb-24 sm:pb-16 flex flex-col font-comic selection:bg-[#F3A935] selection:text-[#4A2613] relative overflow-x-clip transition-colors duration-300`}>
       {/* 小廚神模式背景溫暖白玉波點 */}
       {isChef && (
         <div className="fixed inset-0 pointer-events-none opacity-30 bg-[radial-gradient(#F5B853_1.5px,transparent_1.5px)] [background-size:24px_24px] z-0" />
@@ -359,11 +358,7 @@ export const App: React.FC = () => {
       />
 
       {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄) */}
-      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-7 flex-1 w-full space-y-6 sm:space-y-7 relative z-10">
-        {/* 手繪童趣小點綴（散落在卡片外側留白處） */}
-        <div className="absolute top-1 right-6 pointer-events-none opacity-40">
-          <DoodleStar className="w-5 h-5 animate-pulse" />
-        </div>
+      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-6 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
         <div className="absolute top-36 -left-7 pointer-events-none opacity-75 hidden 2xl:block">
           <DoodleTomato className="w-8 h-8 -rotate-6" />
         </div>
@@ -437,7 +432,7 @@ export const App: React.FC = () => {
             </span>
           </div>
 
-          {/* 雙模式切換膠囊按鈕：[ 📋 餐廳菜單 ] / [ 🏪 店家圖鑑 ] */}
+          {/* 雙模式切換膠囊按鈕：[ 📋 美味佳餚 ] / [ 🏪 餐廳資訊 ] */}
           <div className={`inline-flex items-center p-1 rounded-2xl border self-start sm:self-auto shrink-0 ${
             isChef ? 'bg-[#FFFDF9] border-[#EADFCF]' : 'bg-white border-[#E5DDD2] shadow-soft'
           }`}>
@@ -451,7 +446,7 @@ export const App: React.FC = () => {
               }`}
             >
               <UtensilsCrossed className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>餐廳菜單</span>
+              <span>美味佳餚</span>
             </button>
             <button
               type="button"
@@ -463,7 +458,7 @@ export const App: React.FC = () => {
               }`}
             >
               <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>店家圖鑑</span>
+              <span>餐廳資訊</span>
             </button>
           </div>
         </div>
@@ -525,18 +520,55 @@ export const App: React.FC = () => {
               </div>
             )
           ) : (
-            /* 🏪 店家圖鑑模式：經典大卡片輪播（手機雙欄呈現） */
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-7 lg:gap-8">
-              {filteredRestaurants.map((restaurant, idx) => (
-                <RestaurantCard
-                  key={restaurant.id}
-                  cardIndex={idx}
-                  restaurant={restaurant}
-                  onViewDetail={(r) => setDetailRestaurant(r)}
-                  onEdit={(r) => { setEditingRestaurant(r); setIsFormOpen(true); }}
-                />
-              ))}
-            </div>
+            /* 🏪 餐廳資訊模式：依類別分組排序（橫向 List Card 清單，手機單欄全寬，平板/電腦雙欄） */
+            selectedCategory === '全部' ? (
+              <div className="space-y-7 sm:space-y-8">
+                {categorizedMenuGroups.map((group) => (
+                  <div key={group.category.id} className="space-y-3">
+                    {/* 分類群組標題 */}
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="text-xl sm:text-2xl">{group.category.icon}</span>
+                      <h3 className={`font-black text-base sm:text-lg ${
+                        isChef ? 'text-[#4A2613]' : 'text-japandi-text'
+                      }`}>
+                        {group.category.name}
+                      </h3>
+                      <span className={`text-xs font-bold ${
+                        isChef ? 'text-[#8A5A38]' : 'text-japandi-text-muted'
+                      }`}>
+                        （{group.restaurants.length} 間）
+                      </span>
+                    </div>
+
+                    {/* 餐廳資訊 List Card 網格 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                      {group.restaurants.map((restaurant, idx) => (
+                        <RestaurantCard
+                          key={restaurant.id}
+                          cardIndex={idx}
+                          restaurant={restaurant}
+                          onViewDetail={(r) => setDetailRestaurant(r)}
+                          onEdit={(r) => { setEditingRestaurant(r); setIsFormOpen(true); }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* 當選擇特定類別標籤時 */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                {filteredRestaurants.map((restaurant, idx) => (
+                  <RestaurantCard
+                    key={restaurant.id}
+                    cardIndex={idx}
+                    restaurant={restaurant}
+                    onViewDetail={(r) => setDetailRestaurant(r)}
+                    onEdit={(r) => { setEditingRestaurant(r); setIsFormOpen(true); }}
+                  />
+                ))}
+              </div>
+            )
           )
         ) : (
           <div className="bg-white rounded-[36px] border border-dashed border-[#DCD3C6] p-8 sm:p-12 text-center space-y-3 shadow-soft">

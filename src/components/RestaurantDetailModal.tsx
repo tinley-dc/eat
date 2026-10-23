@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Restaurant, DEFAULT_RESTAURANT_IMAGE } from '../types';
 import { 
   X, 
@@ -68,8 +68,10 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 切換店家或開啟時，重設照片索引至封面照片（絕不越界），並收合街區地圖
+  // 切換店家或開啟時，重設照片索引至封面照片（絕不越界），並收合街區地圖與重設捲動位置
   useEffect(() => {
     if (restaurant) {
       const initialIdx = (restaurant.coverIndex !== undefined && restaurant.coverIndex < (restaurant.images?.length || 0))
@@ -77,6 +79,10 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
         : 0;
       setActiveImageIndex(initialIdx);
       setShowMiniMap(false);
+      setIsScrolled(false);
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+      }
     }
   }, [restaurant?.id, restaurant?.coverIndex, restaurant?.images?.length]);
 
@@ -107,135 +113,162 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
     soundManager.playPop();
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    if (scrollTop > 20) {
+      if (!isScrolled) setIsScrolled(true);
+    } else {
+      if (isScrolled) setIsScrolled(false);
+    }
+  };
+
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-sm animate-fadeIn">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/40 backdrop-blur-sm animate-fadeIn"
+        onClick={() => { onClose(); soundManager.playPop(); }}
+      >
         <div 
-          className={`bg-white rounded-[32px] sm:rounded-[36px] max-w-2xl w-full max-h-[92vh] overflow-y-auto no-scrollbar shadow-float border ${
+          className={`bg-white rounded-[32px] sm:rounded-[36px] max-w-2xl w-full max-h-[92vh] shadow-float border ${
             isChef ? 'border-[#EFE5D8]' : 'border-[#E5DDD2]'
-          } flex flex-col relative animate-scaleUp`}
+          } flex flex-col relative animate-scaleUp overflow-hidden`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 照片輪播區（方案 B：現代美食畫報滿版大頂圖 ＋ 溫和拱門弧線過渡 ＋ 餐點標籤） */}
-          <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden rounded-t-[32px] sm:rounded-t-[36px] bg-white select-none group">
-            {carouselItems.length > 0 && currentImage ? (
-              <>
-                {/* 滿版大圖（點擊可展開全螢幕燈箱大圖） */}
-                <SafeImage
-                  src={currentImage}
-                  alt={currentItem?.dishName || restaurant.name}
-                  onClick={() => { setShowLightbox(true); soundManager.playPop(); }}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 cursor-pointer"
-                />
+          {/* 固定在右上角的關閉按鈕（獨立於捲動區之外，捲動時永遠保持在右上角） */}
+          <button
+            type="button"
+            onClick={() => { onClose(); soundManager.playPop(); }}
+            className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-40 bg-black/50 hover:bg-black/75 backdrop-blur-md text-white p-2.5 rounded-full shadow-md transition-all hover:scale-105 active:scale-95 border border-white/25 cursor-pointer"
+            aria-label="關閉"
+          >
+            <X className="w-5 h-5 stroke-[2.5]" />
+          </button>
 
-                {/* 頂部微漸層，確保關閉按鈕與餐點標籤高對比清晰可見 */}
-                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/50 via-black/15 to-transparent pointer-events-none" />
+          {/* 內部可捲動容器 */}
+          <div 
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="w-full flex-1 overflow-y-auto no-scrollbar"
+          >
+            {/* 照片輪播區（方案 B：現代美食畫報滿版大頂圖 ＋ 溫和拱門弧線過渡 ＋ 餐點標籤） */}
+            <div className="relative w-full h-64 sm:h-80 shrink-0 overflow-hidden bg-white select-none group">
+              {carouselItems.length > 0 && currentImage ? (
+                <>
+                  {/* 滿版大圖（點擊可展開全螢幕燈箱大圖） */}
+                  <SafeImage
+                    src={currentImage}
+                    alt={currentItem?.dishName || restaurant.name}
+                    onClick={() => { setShowLightbox(true); soundManager.playPop(); }}
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 cursor-pointer"
+                  />
 
-                {/* 若為餐點照片，顯示精美餐點標籤徽章 */}
-                {currentItem?.source === 'dish' && (
-                  <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs sm:text-sm font-bold border border-white/20 shadow-md animate-fadeIn">
-                    <span>{currentItem.dishOpinion === 'like' ? (isChef ? '⭐' : '💮') : currentItem.dishOpinion === 'dislike' ? '⚠️' : '🍽️'}</span>
-                    <span className="max-w-[150px] sm:max-w-[200px] truncate">{currentItem.dishName || '餐點照片'}</span>
-                    {currentItem.dishOpinion === 'like' && (
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
-                        isChef ? 'bg-[#D85A2A] text-white shadow-xs' : 'bg-japandi-sage text-white'
-                      }`}>
-                        {isChef ? '招牌' : '必點'}
-                      </span>
-                    )}
-                    {currentItem.dishOpinion === 'dislike' && (
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
-                        isChef ? 'bg-[#C73E29] text-white shadow-xs' : 'bg-japandi-terracotta text-white'
-                      }`}>
-                        避雷
-                      </span>
-                    )}
-                  </div>
-                )}
+                  {/* 頂部微漸層，確保關閉按鈕與餐點標籤高對比清晰可見 */}
+                  <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/50 via-black/15 to-transparent pointer-events-none" />
 
-                {/* 溫柔和紙拱門弧線過渡 (Soft Arch Transition) */}
-                <div className="absolute -bottom-0.5 left-0 right-0 z-20 pointer-events-none">
-                  <svg 
-                    viewBox="0 0 1440 60" 
-                    fill="none" 
-                    className="w-full h-7 sm:h-10 text-white" 
-                    preserveAspectRatio="none"
-                  >
-                    <path 
-                      d="M0,60 L0,30 Q720,-10 1440,30 L1440,60 Z" 
-                      fill="currentColor" 
-                    />
-                  </svg>
-                </div>
-
-                {/* 左右翻頁箭頭（毛玻璃質感膠囊） */}
-                {carouselItems.length > 1 && (
-                  <>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2.5 rounded-full shadow-soft transition-all hover:scale-110 border border-white/20"
-                      aria-label="上一張照片"
-                    >
-                      <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2.5 rounded-full shadow-soft transition-all hover:scale-110 border border-white/20"
-                      aria-label="下一張照片"
-                    >
-                      <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                    </button>
-
-                    {/* 中間小圓點導航 */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-auto">
-                      {carouselItems.map((item, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); soundManager.playPop(); }}
-                          className={`h-2 rounded-full cursor-pointer transition-all ${
-                            idx === safeImageIndex ? 'w-6 bg-white shadow-md' : 'w-2 bg-white/60 hover:bg-white/80'
-                          }`}
-                          aria-label={`切換至第 ${idx + 1} 張照片`}
-                          title={item.source === 'dish' ? `餐點：${item.dishName}` : '店家環境'}
-                        />
-                      ))}
+                  {/* 若為餐點照片，顯示精美餐點標籤徽章 */}
+                  {currentItem?.source === 'dish' && (
+                    <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs sm:text-sm font-bold border border-white/20 shadow-md animate-fadeIn">
+                      <span>{currentItem.dishOpinion === 'like' ? (isChef ? '⭐' : '💮') : currentItem.dishOpinion === 'dislike' ? '⚠️' : '🍽️'}</span>
+                      <span className="max-w-[150px] sm:max-w-[200px] truncate">{currentItem.dishName || '餐點照片'}</span>
+                      {currentItem.dishOpinion === 'like' && (
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+                          isChef ? 'bg-[#D85A2A] text-white shadow-xs' : 'bg-japandi-sage text-white'
+                        }`}>
+                          {isChef ? '招牌' : '必點'}
+                        </span>
+                      )}
+                      {currentItem.dishOpinion === 'dislike' && (
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+                          isChef ? 'bg-[#C73E29] text-white shadow-xs' : 'bg-japandi-terracotta text-white'
+                        }`}>
+                          避雷
+                        </span>
+                      )}
                     </div>
-                  </>
-                )}
+                  )}
 
-                {/* 右下角照片計數與放大徽章（點擊看大圖） */}
-                <div 
-                  onClick={() => { setShowLightbox(true); soundManager.playPop(); }}
-                  className="absolute bottom-6 right-4 sm:right-6 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-transform hover:scale-105 border border-white/20"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>{safeImageIndex + 1}/{carouselItems.length}</span>
-                </div>
-              </>
-            ) : (
-              <div className="w-full h-full relative">
-                <img
-                  src={DEFAULT_RESTAURANT_IMAGE}
-                  alt={restaurant.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
-                <div className="absolute bottom-6 left-6 z-20 bg-black/50 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-white/20">
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>預設手繪圖（可點擊「編輯」上傳照片）</span>
-                </div>
-              </div>
-            )}
+                  {/* 溫柔和紙拱門弧線過渡 (Soft Arch Transition) */}
+                  <div className="absolute -bottom-0.5 left-0 right-0 z-20 pointer-events-none">
+                    <svg 
+                      viewBox="0 0 1440 60" 
+                      fill="none" 
+                      className="w-full h-7 sm:h-10 text-white" 
+                      preserveAspectRatio="none"
+                    >
+                      <path 
+                        d="M0,60 L0,30 Q720,-10 1440,30 L1440,60 Z" 
+                        fill="currentColor" 
+                      />
+                    </svg>
+                  </div>
 
-            {/* 頂部右上角毛玻璃關閉鈕 */}
-            <button
-              onClick={() => { onClose(); soundManager.playPop(); }}
-              className="absolute top-4 right-4 z-30 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2.5 rounded-full shadow-soft transition-transform hover:scale-105 border border-white/20"
-              aria-label="關閉"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+                  {/* 左右翻頁箭頭（毛玻璃質感膠囊，捲動時智慧淡出避免與固定關閉按鈕重疊衝突） */}
+                  {carouselItems.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                        className={`absolute left-3.5 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2.5 rounded-full shadow-soft transition-all duration-300 border border-white/20 ${
+                          isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 hover:scale-110'
+                        }`}
+                        aria-label="上一張照片"
+                      >
+                        <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                        className={`absolute right-3.5 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white p-2.5 rounded-full shadow-soft transition-all duration-300 border border-white/20 ${
+                          isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 hover:scale-110'
+                        }`}
+                        aria-label="下一張照片"
+                      >
+                        <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                      </button>
+
+                      {/* 中間小圓點導航 */}
+                      <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-auto transition-opacity duration-300 ${
+                        isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                      }`}>
+                        {carouselItems.map((item, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); soundManager.playPop(); }}
+                            className={`h-2 rounded-full cursor-pointer transition-all ${
+                              idx === safeImageIndex ? 'w-6 bg-white shadow-md' : 'w-2 bg-white/60 hover:bg-white/80'
+                            }`}
+                            aria-label={`切換至第 ${idx + 1} 張照片`}
+                            title={item.source === 'dish' ? `餐點：${item.dishName}` : '店家環境'}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* 右下角照片計數與放大徽章（點擊看大圖，捲動時智慧淡出） */}
+                  <div 
+                    onClick={() => { setShowLightbox(true); soundManager.playPop(); }}
+                    className={`absolute bottom-6 right-4 sm:right-6 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all duration-300 border border-white/20 ${
+                      isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 hover:scale-105'
+                    }`}
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{safeImageIndex + 1}/{carouselItems.length}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full relative">
+                  <img
+                    src={DEFAULT_RESTAURANT_IMAGE}
+                    alt={restaurant.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
+                  <div className="absolute bottom-6 left-6 z-20 bg-black/50 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-white/20">
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>預設手繪圖（可點擊「編輯」上傳照片）</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
           {/* 內文資訊區 */}
           <div className="p-6 sm:p-7 pt-3 sm:pt-4 space-y-6">
@@ -448,237 +481,255 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
               </span>
             </h3>
 
-            {/* 🌟 必點推薦 */}
-            <div>
-              <div className={`flex items-center gap-2 font-black text-base mb-3 ${
-                isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
-              }`}>
-                <span className="text-lg">{isChef ? '⭐' : '💮'}</span>
-                <span>{isChef ? '主廚招牌必點（CHEF PICK ★）' : '可以再點一次（必吃推薦）'}</span>
-              </div>
+            {/* 🌟 必點推薦（有資料才顯示） */}
+            {likeDishes.length > 0 && (
+              <div>
+                <div className={`flex items-center gap-2 font-black text-base mb-3 ${
+                  isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
+                }`}>
+                  <span className="text-lg">{isChef ? '⭐' : '💮'}</span>
+                  <span>{isChef ? '主廚招牌必點（CHEF PICK ★）' : '可以再點一次（必吃推薦）'}</span>
+                </div>
 
-              {likeDishes.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {likeDishes.map((dish) => (
-                    <div
-                      key={dish.id}
-                      className={
-                        isChef
-                          ? 'bg-[#FFFDF9] border-2 border-[#F2E6D8] rounded-2xl p-4 shadow-soft hover:border-[#FCD8BE] transition-all'
-                          : 'bg-[#F3F7F4] border border-[#CFE1D4] rounded-2xl p-4 shadow-soft transition-all'
-                      }
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className={`font-black text-base sm:text-lg ${
-                          isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
-                        }`}>
-                          {dish.name}
-                        </div>
+                  {likeDishes.map((dish) => {
+                    const dishPhoto = dish.photos && dish.photos.length > 0 ? dish.photos[0] : null;
+                    const globalIndex = dishPhoto ? carouselItems.findIndex(item => item.url === dishPhoto) : -1;
+                    return (
+                      <div
+                        key={dish.id}
+                        className={`relative rounded-2xl p-3 sm:p-3.5 border-2 shadow-soft transition-all flex items-center gap-3 sm:gap-3.5 ${
+                          isChef
+                            ? 'bg-[#FFFDF9] border-[#F2E6D8] hover:border-[#FCD8BE]'
+                            : 'bg-[#F3F7F4] border-[#CFE1D4] hover:border-[#B7D4BF]'
+                        }`}
+                      >
+                        {/* Menu 代表固定在卡片右上角角落，絕不下墜 */}
                         {restaurant.featuredDishId === dish.id && (
-                          <span className={`text-xs font-black px-2.5 py-0.5 rounded-full shrink-0 border ${
-                            isChef
-                              ? 'bg-[#FFF2E2] text-[#D85A2A] border-[#FAD7C0]'
-                              : 'bg-white text-japandi-sage-dark border-[#CFE1D4]'
-                          }`}>
-                            ⭐ Menu 代表
+                          <span 
+                            className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-base sm:text-lg select-none leading-none drop-shadow-xs" 
+                            title="Menu 代表餐點"
+                          >
+                            ⭐
                           </span>
                         )}
-                      </div>
-                      {dish.note && (
-                        <p className={`text-sm mt-2 font-medium p-2.5 rounded-xl border leading-relaxed ${
-                          isChef
-                            ? 'text-[#7A543E] bg-[#FFF9EE] border-[#F2E5D5]'
-                            : 'text-japandi-sage-dark/95 bg-white/80 border-[#D9E9DE]'
+
+                        {/* 餐點單張照片（點擊放大） */}
+                        {dishPhoto && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (globalIndex >= 0) setActiveImageIndex(globalIndex);
+                              setShowLightbox(true);
+                              soundManager.playPop();
+                            }}
+                            className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl sm:rounded-2xl overflow-hidden border shadow-sm group cursor-pointer bg-white transition-transform hover:scale-105 ${
+                              isChef ? 'border-[#EADAC5]' : 'border-black/10'
+                            }`}
+                            title={`點擊放大查看 ${dish.name} 照片`}
+                          >
+                            <SafeImage src={dishPhoto} alt={dish.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                              <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" />
+                            </div>
+                          </button>
+                        )}
+
+                        <div className={`min-w-0 flex-1 flex flex-col justify-center ${
+                          restaurant.featuredDishId === dish.id ? 'pr-6 sm:pr-7' : ''
                         }`}>
-                          💬 {dish.note}
-                        </p>
-                      )}
+                          <div className={`font-black text-base sm:text-lg tracking-tight truncate leading-snug ${
+                            isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
+                          }`}>
+                            {dish.name}
+                          </div>
 
-                      {/* 餐點照片縮圖 */}
-                      {dish.photos && dish.photos.length > 0 && (
-                        <div className="mt-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-                          {dish.photos.map((photoUrl, pIdx) => {
-                            const globalIndex = carouselItems.findIndex(item => item.url === photoUrl);
-                            return (
-                              <button
-                                key={pIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (globalIndex >= 0) {
-                                    setActiveImageIndex(globalIndex);
-                                  }
-                                  setShowLightbox(true);
-                                  soundManager.playPop();
-                                }}
-                                className={`relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl overflow-hidden border shadow-soft hover:scale-105 transition-transform group cursor-pointer bg-white ${
-                                  isChef ? 'border-[#EADAC5]' : 'border-black/10'
-                                }`}
-                                title={`點擊放大查看 ${dish.name} 照片`}
-                              >
-                                <SafeImage src={photoUrl} alt={dish.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                  <Camera className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" />
-                                </div>
-                              </button>
-                            );
-                          })}
+                          {dish.note && (
+                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                              isChef ? 'text-[#7A543E]' : 'text-japandi-sage-dark/90'
+                            }`}>
+                              💬 {dish.note}
+                            </p>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <p className={`text-sm italic p-4 rounded-2xl border ${
-                  isChef
-                    ? 'text-[#9A7B68] bg-[#FFF9EE] border-[#F2E5D5]'
-                    : 'text-japandi-text-muted bg-japandi-oat border-[#EDE6DC]'
-                }`}>
-                  {isChef ? '主廚尚未標記必吃餐點，下次嚐到美味記得打勾勾～' : '尚未標記必吃餐點，下次吃到了記得打勾勾～'}
-                </p>
-              )}
-            </div>
-
-            {/* ⚠️ 避雷警示 */}
-            <div>
-              <div className={`flex items-center gap-2 font-black text-base mb-3 ${
-                isChef ? 'text-[#C73E29]' : 'text-japandi-terracotta-dark'
-              }`}>
-                <span className="text-lg">⚠️</span>
-                <span>{isChef ? '主廚踩雷備忘（WATCH OUT ⚠️）' : '小心避雷（別再點錯了！）'}</span>
               </div>
+            )}
 
-              {dislikeDishes.length > 0 ? (
+            {/* ⚠️ 避雷警示（有踩雷紀錄才顯示，無資料不顯示） */}
+            {dislikeDishes.length > 0 && (
+              <div>
+                <div className={`flex items-center gap-2 font-black text-base mb-3 ${
+                  isChef ? 'text-[#C73E29]' : 'text-japandi-terracotta-dark'
+                }`}>
+                  <span className="text-lg">⚠️</span>
+                  <span>{isChef ? '主廚踩雷備忘（WATCH OUT ⚠️）' : '小心避雷（別再點錯了！）'}</span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {dislikeDishes.map((dish) => (
-                    <div
-                      key={dish.id}
-                      className={
-                        isChef
-                          ? 'bg-[#FFFDF9] border-2 border-[#F8CEC7] rounded-2xl p-4 shadow-soft transition-all'
-                          : 'bg-[#FCF2F0] border border-[#F2D1CB] rounded-2xl p-4 shadow-soft transition-all'
-                      }
-                    >
-                      <div className={`font-black text-base sm:text-lg flex items-center justify-between ${
-                        isChef ? 'text-[#C73E29]' : 'text-japandi-terracotta-dark'
-                      }`}>
-                        <span>{dish.name}</span>
-                        <span className={`text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-full border ${
+                  {dislikeDishes.map((dish) => {
+                    const dishPhoto = dish.photos && dish.photos.length > 0 ? dish.photos[0] : null;
+                    const globalIndex = dishPhoto ? carouselItems.findIndex(item => item.url === dishPhoto) : -1;
+                    return (
+                      <div
+                        key={dish.id}
+                        className={`relative rounded-2xl p-3 sm:p-3.5 border-2 shadow-soft transition-all flex items-center gap-3 sm:gap-3.5 ${
+                          isChef
+                            ? 'bg-[#FFFDF9] border-[#F8CEC7] hover:border-[#F2AEA4]'
+                            : 'bg-[#FCF2F0] border-[#F2D1CB] hover:border-[#E8B8B0]'
+                        }`}
+                      >
+                        {/* 避雷小徽章固定在卡片右上角 */}
+                        <span className={`absolute top-2.5 right-2.5 text-[11px] font-black px-2 py-0.5 rounded-md border shrink-0 ${
                           isChef
                             ? 'bg-[#FDF1EF] text-[#C73E29] border-[#F8CEC7]'
                             : 'bg-white text-japandi-terracotta-dark border-[#F2D1CB]'
                         }`}>
-                          {isChef ? 'WATCH OUT ⚠️' : '避雷注意'}
+                          避雷
                         </span>
-                      </div>
-                      {dish.note && (
-                        <p className={`text-sm mt-2 font-medium p-2.5 rounded-xl border leading-relaxed ${
-                          isChef
-                            ? 'text-[#C73E29]/95 bg-[#FDF1EF] border-[#F8CEC7]'
-                            : 'text-japandi-terracotta-dark/95 bg-white/80 border-[#F5DDD8]'
-                        }`}>
-                          ⚠️ {dish.note}
-                        </p>
-                      )}
 
-                      {/* 餐點照片縮圖 */}
-                      {dish.photos && dish.photos.length > 0 && (
-                        <div className="mt-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-                          {dish.photos.map((photoUrl, pIdx) => {
-                            const globalIndex = carouselItems.findIndex(item => item.url === photoUrl);
-                            return (
-                              <button
-                                key={pIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (globalIndex >= 0) {
-                                    setActiveImageIndex(globalIndex);
-                                  }
-                                  setShowLightbox(true);
-                                  soundManager.playPop();
-                                }}
-                                className={`relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-xl overflow-hidden border shadow-soft hover:scale-105 transition-transform group cursor-pointer bg-white ${
-                                  isChef ? 'border-[#F8CEC7]' : 'border-black/10'
-                                }`}
-                                title={`點擊放大查看 ${dish.name} 照片`}
-                              >
-                                <SafeImage src={photoUrl} alt={dish.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                  <Camera className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" />
-                                </div>
-                              </button>
-                            );
-                          })}
+                        {/* 餐點單張照片（點擊放大） */}
+                        {dishPhoto && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (globalIndex >= 0) setActiveImageIndex(globalIndex);
+                              setShowLightbox(true);
+                              soundManager.playPop();
+                            }}
+                            className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl sm:rounded-2xl overflow-hidden border shadow-sm group cursor-pointer bg-white transition-transform hover:scale-105 ${
+                              isChef ? 'border-[#F8CEC7]' : 'border-black/10'
+                            }`}
+                            title={`點擊放大查看 ${dish.name} 照片`}
+                          >
+                            <SafeImage src={dishPhoto} alt={dish.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                              <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" />
+                            </div>
+                          </button>
+                        )}
+
+                        <div className="min-w-0 flex-1 flex flex-col justify-center pr-12">
+                          <div className={`font-black text-base sm:text-lg tracking-tight truncate leading-snug ${
+                            isChef ? 'text-[#C73E29]' : 'text-japandi-terracotta-dark'
+                          }`}>
+                            {dish.name}
+                          </div>
+
+                          {dish.note && (
+                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                              isChef ? 'text-[#C73E29]/95' : 'text-japandi-terracotta-dark/95'
+                            }`}>
+                              ⚠️ {dish.note}
+                            </p>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <p className={`text-sm italic p-4 rounded-2xl border ${
-                  isChef
-                    ? 'text-[#9A7B68] bg-[#FFF9EE] border-[#F2E5D5]'
-                    : 'text-japandi-text-muted bg-japandi-oat border-[#EDE6DC]'
-                }`}>
-                  {isChef ? '目前菜單無踩雷紀錄，主廚可以安心開動！' : '目前這家店很安全，沒有踩到地雷！'}
-                </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* 🥢 普通品項 */}
             {neutralDishes.length > 0 && (
               <div>
-                <div className={`flex items-center gap-1.5 font-bold text-sm sm:text-base mb-2.5 ${
+                <div className={`flex items-center gap-2 font-black text-base mb-3 ${
                   isChef ? 'text-[#7A543E]' : 'text-japandi-text-muted'
                 }`}>
-                  <span>🥢</span>
+                  <span className="text-lg">🥢</span>
                   <span>{isChef ? '其他嚐鮮紀錄' : '吃過普通 / 其他餐點'}</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {neutralDishes.map((dish) => (
-                    <div
-                      key={dish.id}
-                      className={`border rounded-xl px-3.5 py-2 text-sm flex items-center gap-2 ${
-                        isChef
-                          ? 'bg-[#FFFDF9] border-[#EADAC5] text-[#4A2613]'
-                          : 'bg-japandi-oat border-[#EDE6DC] text-japandi-text'
-                      }`}
-                    >
-                      <span className="font-bold">{dish.name}</span>
-                      {restaurant.featuredDishId === dish.id && (
-                        <span className={`text-[11px] font-black px-1.5 py-0.5 rounded-md border ${
-                          isChef ? 'bg-[#FFF2E2] text-[#D85A2A] border-[#FAD7C0]' : 'bg-white text-japandi-sage-dark border-[#CFE1D4]'
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {neutralDishes.map((dish) => {
+                    const dishPhoto = dish.photos && dish.photos.length > 0 ? dish.photos[0] : null;
+                    const globalIndex = dishPhoto ? carouselItems.findIndex(item => item.url === dishPhoto) : -1;
+                    return (
+                      <div
+                        key={dish.id}
+                        className={`relative rounded-2xl p-3 sm:p-3.5 border-2 shadow-soft transition-all flex items-center gap-3 sm:gap-3.5 ${
+                          isChef
+                            ? 'bg-[#FFFDF9] border-[#EADAC5] hover:border-[#D8C2A8]'
+                            : 'bg-japandi-oat border-[#EDE6DC] hover:border-[#DFD6C9]'
+                        }`}
+                      >
+                        {/* Menu 代表固定在卡片右上角角落，絕不下墜 */}
+                        {restaurant.featuredDishId === dish.id && (
+                          <span 
+                            className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-base sm:text-lg select-none leading-none drop-shadow-xs" 
+                            title="Menu 代表餐點"
+                          >
+                            ⭐
+                          </span>
+                        )}
+
+                        {/* 餐點單張照片（點擊放大） */}
+                        {dishPhoto && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (globalIndex >= 0) setActiveImageIndex(globalIndex);
+                              setShowLightbox(true);
+                              soundManager.playPop();
+                            }}
+                            className={`relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl sm:rounded-2xl overflow-hidden border shadow-sm group cursor-pointer bg-white transition-transform hover:scale-105 ${
+                              isChef ? 'border-[#EADAC5]' : 'border-black/10'
+                            }`}
+                            title={`點擊放大查看 ${dish.name} 照片`}
+                          >
+                            <SafeImage src={dishPhoto} alt={dish.name} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                              <Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" />
+                            </div>
+                          </button>
+                        )}
+
+                        <div className={`min-w-0 flex-1 flex flex-col justify-center ${
+                          restaurant.featuredDishId === dish.id ? 'pr-6 sm:pr-7' : ''
                         }`}>
-                          ⭐ Menu代表
-                        </span>
-                      )}
-                      {dish.note && <span className={`ml-1 ${isChef ? 'text-[#9A7B68]' : 'text-japandi-text-muted'}`}>({dish.note})</span>}
-                      {dish.photos && dish.photos.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const gIdx = carouselItems.findIndex(item => item.url === dish.photos![0]);
-                            if (gIdx >= 0) setActiveImageIndex(gIdx);
-                            setShowLightbox(true);
-                            soundManager.playPop();
-                          }}
-                          className={`ml-1 p-0.5 ${isChef ? 'text-[#D85A2A] hover:text-[#B84518]' : 'text-japandi-sage hover:text-japandi-sage-dark'}`}
-                          title="查看餐點照片"
-                        >
-                          <Camera className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <div className={`font-black text-base sm:text-lg tracking-tight truncate leading-snug ${
+                            isChef ? 'text-[#4A2613]' : 'text-japandi-text'
+                          }`}>
+                            {dish.name}
+                          </div>
+
+                          {dish.note && (
+                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                              isChef ? 'text-[#9A7B68]' : 'text-japandi-text-muted'
+                            }`}>
+                              💬 {dish.note}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            )}
+
+            {/* 若整間店完全無任何餐點紀錄時的乾淨佔位提示 */}
+            {restaurant.dishes.length === 0 && (
+              <p className={`text-sm italic p-4 rounded-2xl border text-center ${
+                isChef
+                  ? 'text-[#9A7B68] bg-[#FFF9EE] border-[#F2E5D5]'
+                  : 'text-japandi-text-muted bg-japandi-oat border-[#EDE6DC]'
+              }`}>
+                {isChef ? '主廚尚未新增此店的餐點紀錄，下次吃過記得來記錄！' : '尚未記錄此店的餐點心得，吃過記得來記錄喔！'}
+              </p>
             )}
           </div>
         </div>
       </div>
     </div>
+  </div>
 
       {/* 全螢幕大圖燈箱 (Lightbox) */}
       {showLightbox && carouselItems.length > 0 && (
