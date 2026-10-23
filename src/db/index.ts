@@ -27,6 +27,19 @@ export const db = new WannaEatDatabase();
 export async function initializeDatabase(): Promise<Restaurant[]> {
   const count = await db.restaurants.count();
   if (count === 0) {
+    const config = getCloudConfig();
+    // 若已設定 Google 試算表，新裝置初次開啟直接從雲端下載使用者資料
+    if (config.scriptUrl && config.scriptUrl.trim()) {
+      try {
+        const remote = await pullFromGoogleSheets(config.scriptUrl.trim());
+        if (remote && remote.length > 0) {
+          await db.restaurants.bulkAdd(remote);
+          return remote;
+        }
+      } catch (e) {
+        console.warn('新裝置初次開啟從雲端拉取失敗，降級為示範資料:', e);
+      }
+    }
     await db.restaurants.bulkAdd(SEED_RESTAURANTS);
     return SEED_RESTAURANTS;
   }
@@ -249,20 +262,33 @@ export async function syncWithCloud(): Promise<{ count: number; message: string 
   const localRestaurants = await db.restaurants.toArray();
 
   if (remoteRestaurants && remoteRestaurants.length > 0) {
-    // 雲端有資料：合併機制 (以更新時間最新的為主)
-    const map = new Map<string, Restaurant>();
-    for (const r of localRestaurants) {
-      map.set(r.id, r);
-    }
-    for (const r of remoteRestaurants) {
-      const local = map.get(r.id);
-      if (!local) {
+    // 檢查本地是否僅為初始預設示範店家（rest-1 ~ rest-5）
+    // 若本地只有示範店家，而雲端已有使用者上傳的資料，直接以雲端為準完全替換，避免示範店家殘留在新裝置
+    const isOnlySeedData = localRestaurants.length > 0 && localRestaurants.every(local => 
+      SEED_RESTAURANTS.some(seed => seed.id === local.id)
+    );
+
+    let merged: Restaurant[];
+
+    if (isOnlySeedData) {
+      merged = remoteRestaurants;
+      await db.restaurants.clear();
+      await db.restaurants.bulkAdd(merged);
+    } else {
+      // 雲端與本地皆有資料：合併機制 (以更新時間最新的為主)
+      const map = new Map<string, Restaurant>();
+      for (const r of localRestaurants) {
         map.set(r.id, r);
-      } else {
-        // 保護照片：Google 試算表無法存放超長 Base64，若遠端無照片而本地有，永遠保留本地照片
-        const hasLocalImages = local.images && local.images.length > 0;
-        const hasRemoteImages = r.images && r.images.length > 0;
-        const preservedImages = hasRemoteImages ? r.images : (hasLocalImages ? local.images : []);
+      }
+      for (const r of remoteRestaurants) {
+        const local = map.get(r.id);
+        if (!local) {
+          map.set(r.id, r);
+        } else {
+          // 保護照片：Google 試算表無法存放超長 Base64，若遠端無照片而本地有，永遠保留本地照片
+          const hasLocalImages = local.images && local.images.length > 0;
+          const hasRemoteImages = r.images && r.images.length > 0;
+          const preservedImages = hasRemoteImages ? r.images : (hasLocalImages ? local.images : []);
 
         const mergedDishes = (r.dishes || []).map(remoteDish => {
           const localDish = (local.dishes || []).find(ld => ld.id === remoteDish.id);
@@ -297,9 +323,9 @@ export async function syncWithCloud(): Promise<{ count: number; message: string 
         }
       }
     }
-    const merged = Array.from(map.values());
-    // 使用 bulkPut 安全就地更新，絕不呼叫 clear() 避免資料丟失
+    merged = Array.from(map.values());
     await db.restaurants.bulkPut(merged);
+  }
 
     // 回寫最新合併資料到 Google Sheets（先上傳壓縮後的照片至 Google Drive）
     try {

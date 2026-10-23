@@ -3,13 +3,16 @@ import { compressBase64 } from '../utils/imageCompressor';
 
 const CONFIG_KEY = 'wanna_eat_cloud_config';
 
+// 預設 Google Apps Script 網址（填寫後，任何新裝置或訪客開啟網頁都會自動連線至該試算表）
+export const DEFAULT_SCRIPT_URL = '';
+
 export function getCloudConfig(): CloudConfig {
   const saved = localStorage.getItem(CONFIG_KEY);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       return {
-        scriptUrl: parsed.scriptUrl || '',
+        scriptUrl: parsed.scriptUrl || DEFAULT_SCRIPT_URL,
         autoSync: parsed.autoSync !== undefined ? parsed.autoSync : true,
         lastSyncedAt: parsed.lastSyncedAt
       };
@@ -18,7 +21,7 @@ export function getCloudConfig(): CloudConfig {
     }
   }
   return {
-    scriptUrl: '',
+    scriptUrl: DEFAULT_SCRIPT_URL,
     autoSync: true,
     lastSyncedAt: undefined
   };

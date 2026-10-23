@@ -6,9 +6,10 @@ import {
   getAllRestaurants, 
   addRestaurant, 
   updateRestaurant, 
-  deleteRestaurant 
+  deleteRestaurant,
+  syncWithCloud
 } from './db';
-import { getCloudConfig } from './services/cloudSync';
+import { getCloudConfig, saveCloudConfig } from './services/cloudSync';
 import { loadCategories, saveCategories } from './utils/categoryStorage';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
@@ -137,8 +138,49 @@ export const App: React.FC = () => {
   // 初始化資料庫
   const loadData = async () => {
     try {
+      // 1. 檢查網址是否有分享同步參數 (?sync=... 或 ?scriptUrl=...)
+      const params = new URLSearchParams(window.location.search);
+      const syncParam = params.get('sync') || params.get('scriptUrl');
+      if (syncParam) {
+        try {
+          const decoded = decodeURIComponent(syncParam).trim();
+          if (decoded.startsWith('http')) {
+            const current = getCloudConfig();
+            saveCloudConfig({
+              ...current,
+              scriptUrl: decoded,
+              autoSync: true
+            });
+            setCloudConfig(getCloudConfig());
+            // 抹除網址上的參數以保持網址乾淨
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, '', cleanUrl);
+          }
+        } catch (err) {
+          console.warn('解析同步參數失敗:', err);
+        }
+      }
+
+      // 2. 初始化資料庫（若本地無資料且已設定試算表，initializeDatabase 會直接從雲端拉取）
       const data = await initializeDatabase();
       setRestaurants(data);
+
+      // 3. 若已設定試算表，於背景執行一次同步（若新裝置先前殘留示範店家，會自動以雲端資料完整覆蓋）
+      const config = getCloudConfig();
+      if (config.scriptUrl && config.autoSync) {
+        syncWithCloud()
+          .then(async (res) => {
+            const updated = await getAllRestaurants();
+            setRestaurants(updated);
+            if (res.count > 0) {
+              setSyncToastMessage(`☁️ 已同步 ${res.count} 間店家資料！`);
+              setTimeout(() => setSyncToastMessage(null), 3200);
+            }
+          })
+          .catch((err) => {
+            console.warn('初次載入背景同步失敗:', err);
+          });
+      }
     } catch (e) {
       console.error('初始化失敗:', e);
       const list = await getAllRestaurants();
