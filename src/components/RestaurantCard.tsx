@@ -179,9 +179,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       }}
       className={`${
         isChef
-          ? 'rounded-t-[48px] sm:rounded-t-[54px] rounded-b-[40px] sm:rounded-b-[46px] border-2 border-[#F3ECE1] hover:border-[#E8D9C5] shadow-soft hover:shadow-float hover:-translate-y-1.5'
-          : 'rounded-t-[54px] rounded-b-[46px] shadow-soft hover:shadow-float hover:-translate-y-1'
-      } ${palette.cardBg} transition-all duration-300 p-5 sm:p-6 pb-6 sm:pb-7 cursor-pointer flex flex-col justify-between group relative`}
+          ? 'rounded-t-[34px] sm:rounded-t-[54px] rounded-b-[26px] sm:rounded-b-[46px] border-2 border-[#F3ECE1] hover:border-[#E8D9C5] shadow-soft hover:shadow-float hover:-translate-y-1.5'
+          : 'rounded-t-[36px] sm:rounded-t-[54px] rounded-b-[28px] sm:rounded-b-[46px] shadow-soft hover:shadow-float hover:-translate-y-1'
+      } ${palette.cardBg} transition-all duration-300 p-3 sm:p-6 pb-3.5 sm:pb-7 cursor-pointer flex flex-col justify-between group relative`}
     >
       <div>
         {/* 照片區域（純淨舒展大拱門，同原版食譜卡） */}
@@ -191,7 +191,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           onMouseLeave={() => setIsHovered(false)}
         >
           <div 
-            className="relative aspect-[4/3.8] w-full rounded-t-[42px] sm:rounded-t-[46px] rounded-b-[26px] sm:rounded-b-[30px] overflow-hidden bg-white shadow-soft select-none"
+            className="relative aspect-[4/3.8] w-full rounded-t-[26px] sm:rounded-t-[46px] rounded-b-[18px] sm:rounded-b-[30px] overflow-hidden bg-white shadow-soft select-none"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -210,18 +210,18 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
             {/* 左上角標籤：店家環境 / 餐點名稱 */}
             {currentItem && (
-              <div className="absolute top-3 left-3 z-20 pointer-events-none max-w-[70%]">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md shadow-sm text-xs sm:text-sm font-black truncate ${
+              <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 pointer-events-none max-w-[75%]">
+                <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white/90 backdrop-blur-md shadow-sm text-[10px] sm:text-sm font-black truncate ${
                   isChef ? 'text-[#4A2613]' : 'text-stone-800'
                 }`}>
-                  <span className="shrink-0">
+                  <span className="shrink-0 text-xs sm:text-base">
                     {currentItem.source === 'dish' 
                       ? (currentItem.dishOpinion === 'dislike' ? (isChef ? '⚠️' : '⚡') : (isChef ? '⭐' : '🍽️'))
                       : (isChef ? '👨‍🍳' : '🏠')
                     }
                   </span>
                   <span className="truncate">
-                    {currentItem.source === 'dish' ? currentItem.dishName : (isChef ? '主廚店景' : '店家環境')}
+                    {currentItem.source === 'dish' ? currentItem.dishName : (isChef ? '店景' : '環境')}
                   </span>
                 </span>
               </div>
@@ -229,13 +229,13 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
             {/* 右上角張數計數（多於 1 張時顯示，例：1/3） */}
             {carouselItems.length > 1 && (
-              <div className="absolute top-3 right-3 z-20 pointer-events-none">
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold shadow-sm tracking-wider ${
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 pointer-events-none">
+                <span className={`inline-block px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow-sm tracking-wider ${
                   isChef
                     ? 'bg-[#4A2613]/80 text-[#FFF9EE] backdrop-blur-md border border-[#F3A935]/40'
                     : 'bg-black/45 backdrop-blur-md text-white'
                 }`}>
-                  {safeIndex + 1} / {carouselItems.length}
+                  {safeIndex + 1}/{carouselItems.length}
                 </span>
               </div>
             )}
@@ -247,28 +247,28 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   type="button"
                   onClick={handlePrev}
                   aria-label="上一張照片"
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-stone-800 shadow-md backdrop-blur-md flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                  className="absolute left-1.5 sm:left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/85 hover:bg-white text-stone-800 shadow-md backdrop-blur-md flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                 >
-                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
                   aria-label="下一張照片"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/85 hover:bg-white text-stone-800 shadow-md backdrop-blur-md flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                  className="absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/85 hover:bg-white text-stone-800 shadow-md backdrop-blur-md flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 z-20 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
                 >
-                  <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
                 </button>
               </>
             )}
 
-            {/* 下方圓點指示器（多於 1 張時顯示，若大於 8 張則精簡呈現） */}
+            {/* 下方圓點指示器（多於 1 張時顯示，若大於 6 張則精簡呈現） */}
             {carouselItems.length > 1 && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className="absolute bottom-3 left-0 right-0 flex items-center justify-center gap-1.5 z-20 pointer-events-auto px-4"
+                className="absolute bottom-2 sm:bottom-3 left-0 right-0 flex items-center justify-center gap-1 sm:gap-1.5 z-20 pointer-events-auto px-2 sm:px-4"
               >
-                {carouselItems.slice(0, 8).map((_, idx) => (
+                {carouselItems.slice(0, 6).map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -276,10 +276,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                       e.stopPropagation();
                       setCurrentIndex(idx);
                     }}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                    className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 ${
                       idx === safeIndex 
-                        ? 'w-4 bg-white shadow' 
-                        : 'w-1.5 bg-white/60 hover:bg-white'
+                        ? 'w-3 sm:w-4 bg-white shadow' 
+                        : 'w-1 sm:w-1.5 bg-white/60 hover:bg-white'
                     }`}
                     aria-label={`切換至第 ${idx + 1} 張照片`}
                   />
@@ -290,18 +290,18 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         </div>
 
         {/* 標題與營業時間（對標原圖純白菜單卡上的繽紛手繪標題與精緻標籤） */}
-        <div className="mt-5 mb-1 text-center px-2 flex flex-col items-center">
-          <h3 className={`font-black text-xl sm:text-2xl ${palette.titleColor} tracking-wide group-hover:scale-105 transition-transform leading-snug`}>
+        <div className="mt-2.5 sm:mt-5 mb-0.5 sm:mb-1 text-center px-1 sm:px-2 flex flex-col items-center">
+          <h3 className={`font-black text-sm sm:text-2xl ${palette.titleColor} tracking-wide group-hover:scale-105 transition-transform leading-snug line-clamp-1 sm:line-clamp-none`}>
             {restaurant.name}
           </h3>
           {restaurant.businessHours && (
-            <div className={`mt-2 inline-flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold px-3 py-0.5 rounded-full ${
+            <div className={`mt-1 sm:mt-2 inline-flex items-center justify-center gap-1 sm:gap-1.5 text-[10px] sm:text-sm font-bold px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full ${
               isChef && 'badgeBg' in palette
                 ? `${palette.badgeBg} border font-black shadow-2xs`
                 : 'bg-black/5 text-[#423420] opacity-80'
             }`}>
-              <Clock className="w-3.5 h-3.5 shrink-0" />
-              <span>{formatBusinessHours(restaurant.businessHours)}</span>
+              <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+              <span className="truncate max-w-[110px] sm:max-w-none">{formatBusinessHours(restaurant.businessHours)}</span>
             </div>
           )}
         </div>
