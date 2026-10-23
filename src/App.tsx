@@ -359,8 +359,8 @@ export const App: React.FC = () => {
         hasSearchQuery={Boolean(searchQuery.trim())}
       />
 
-      {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄，手機底部留有 BottomNav 高度空間) */}
-      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-28 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
+      {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄，手機底部留有超薄 BottomNav 高度空間) */}
+      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-16 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
         <div className="absolute top-36 -left-7 pointer-events-none opacity-75 hidden 2xl:block">
           <DoodleTomato className="w-8 h-8 -rotate-6" />
         </div>
@@ -670,7 +670,7 @@ export const App: React.FC = () => {
 
       {/* 背景自動同步浮動提示（在手機版避開底部導覽列高度） */}
       {syncToastMessage && (
-        <div className="fixed bottom-24 sm:bottom-6 right-4 sm:right-6 z-50 bg-[#2D2A26] text-white px-4 py-2.5 rounded-2xl shadow-float flex items-center gap-2.5 text-sm font-bold animate-fadeIn border border-white/10 backdrop-blur-md">
+        <div className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 z-50 bg-[#2D2A26] text-white px-4 py-2.5 rounded-2xl shadow-float flex items-center gap-2.5 text-sm font-bold animate-fadeIn border border-white/10 backdrop-blur-md">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{syncToastMessage}</span>
         </div>
