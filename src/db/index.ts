@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import { Restaurant } from '../types';
 import { SEED_RESTAURANTS } from '../data/seedData';
 import { RECOVERED_IMAGES } from '../data/recoveredImages';
+import { getKnownRestaurantMeta } from '../data/knownRestaurantsMeta';
 import {
   getCloudConfig,
   saveCloudConfig,
@@ -141,6 +142,31 @@ export async function initializeDatabase(): Promise<Restaurant[]> {
       r.businessHours = '11:30 - 21:30';
       modified = true;
     }
+    // 自動補齊已知店家的營業時間、電話、官網、訂位與地圖中繼資料
+    const known = getKnownRestaurantMeta(r.id, r.name);
+    if (known) {
+      if (!r.businessHours && known.businessHours) {
+        r.businessHours = known.businessHours;
+        modified = true;
+      }
+      if (!r.phone && known.phone) {
+        r.phone = known.phone;
+        modified = true;
+      }
+      if (!r.websiteUrl && known.websiteUrl) {
+        r.websiteUrl = known.websiteUrl;
+        modified = true;
+      }
+      if (!r.bookingUrl && known.bookingUrl) {
+        r.bookingUrl = known.bookingUrl;
+        modified = true;
+      }
+      if (!r.googleMapsUrl && known.googleMapsUrl) {
+        r.googleMapsUrl = known.googleMapsUrl;
+        modified = true;
+      }
+    }
+
     // 自動還原使用者先前上傳遭雲端同步衝掉的照片
     const nameMap: Record<string, string> = {
       '麥當勞': 'rest-1792643196497',
@@ -189,10 +215,37 @@ export async function getAllRestaurants(): Promise<Restaurant[]> {
     '摩斯漢堡': 'rest-1792643992186'
   };
   for (const r of list) {
+    let mod = false;
     const recoveredKey = RECOVERED_IMAGES[r.id] ? r.id : nameMap[r.name.trim()];
     const recoveredImg = recoveredKey ? RECOVERED_IMAGES[recoveredKey] : undefined;
     if (recoveredImg && (!r.images || r.images.length === 0)) {
       r.images = [recoveredImg];
+      mod = true;
+    }
+    const known = getKnownRestaurantMeta(r.id, r.name);
+    if (known) {
+      if (!r.businessHours && known.businessHours) {
+        r.businessHours = known.businessHours;
+        mod = true;
+      }
+      if (!r.phone && known.phone) {
+        r.phone = known.phone;
+        mod = true;
+      }
+      if (!r.websiteUrl && known.websiteUrl) {
+        r.websiteUrl = known.websiteUrl;
+        mod = true;
+      }
+      if (!r.bookingUrl && known.bookingUrl) {
+        r.bookingUrl = known.bookingUrl;
+        mod = true;
+      }
+      if (!r.googleMapsUrl && known.googleMapsUrl) {
+        r.googleMapsUrl = known.googleMapsUrl;
+        mod = true;
+      }
+    }
+    if (mod) {
       await db.restaurants.put(r);
     }
   }
@@ -322,20 +375,44 @@ export async function syncWithCloud(): Promise<{ count: number; message: string 
           };
         });
 
-        if (r.updatedAt && r.updatedAt > (local.updatedAt || 0)) {
+        const known = getKnownRestaurantMeta(r.id, r.name) || getKnownRestaurantMeta(local.id, local.name);
+        const isRemoteNewer = Boolean(r.updatedAt && r.updatedAt > (local.updatedAt || 0));
+
+        const resolvedHours = isRemoteNewer
+          ? (r.businessHours || local.businessHours || known?.businessHours)
+          : (local.businessHours || r.businessHours || known?.businessHours);
+        const resolvedPhone = isRemoteNewer
+          ? (r.phone || local.phone || known?.phone)
+          : (local.phone || r.phone || known?.phone);
+        const resolvedWeb = isRemoteNewer
+          ? (r.websiteUrl || local.websiteUrl || known?.websiteUrl)
+          : (local.websiteUrl || r.websiteUrl || known?.websiteUrl);
+        const resolvedBooking = isRemoteNewer
+          ? (r.bookingUrl || local.bookingUrl || known?.bookingUrl)
+          : (local.bookingUrl || r.bookingUrl || known?.bookingUrl);
+        const resolvedMaps = isRemoteNewer
+          ? (r.googleMapsUrl || local.googleMapsUrl || known?.googleMapsUrl)
+          : (local.googleMapsUrl || r.googleMapsUrl || known?.googleMapsUrl);
+
+        if (isRemoteNewer) {
           map.set(r.id, {
             ...r,
-            businessHours: r.businessHours || local.businessHours,
-            phone: r.phone || local.phone,
-            websiteUrl: r.websiteUrl || local.websiteUrl,
-            bookingUrl: r.bookingUrl || local.bookingUrl,
-            googleMapsUrl: r.googleMapsUrl || local.googleMapsUrl,
+            businessHours: resolvedHours,
+            phone: resolvedPhone,
+            websiteUrl: resolvedWeb,
+            bookingUrl: resolvedBooking,
+            googleMapsUrl: resolvedMaps,
             images: preservedImages,
             dishes: mergedDishes
           });
         } else {
           map.set(r.id, {
             ...local,
+            businessHours: resolvedHours,
+            phone: resolvedPhone,
+            websiteUrl: resolvedWeb,
+            bookingUrl: resolvedBooking,
+            googleMapsUrl: resolvedMaps,
             images: hasLocalImages ? local.images : (hasRemoteImages ? r.images : []),
             dishes: (local.dishes || []).map(localDish => {
               const remoteDish = (r.dishes || []).find(rd => rd.id === localDish.id);

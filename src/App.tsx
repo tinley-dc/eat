@@ -100,6 +100,9 @@ export const App: React.FC = () => {
           setCloudSyncStatus('idle');
         }, 3200);
         setCloudConfig(getCloudConfig());
+        getAllRestaurants().then(updated => {
+          setRestaurants(updated);
+        });
       } else if (detail.status === 'error') {
         setCloudSyncStatus('error');
         setTimeout(() => setCloudSyncStatus('idle'), 4000);

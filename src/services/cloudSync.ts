@@ -2,6 +2,7 @@ import { Restaurant, CloudConfig } from '../types';
 import { compressBase64 } from '../utils/imageCompressor';
 import { loadCategories, saveCategories } from '../utils/categoryStorage';
 import { getSecurityConfig, saveSecurityConfig } from '../utils/securityStorage';
+import { getKnownRestaurantMeta } from '../data/knownRestaurantsMeta';
 
 const CONFIG_KEY = 'wanna_eat_cloud_config';
 
@@ -149,14 +150,15 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
             } catch {}
           }
 
+          const known = getKnownRestaurantMeta(r.id, r.name);
           return {
             ...r,
             note: note || undefined,
-            businessHours: r.businessHours || meta.businessHours || embeddedMeta.b,
-            phone: r.phone || meta.phone || embeddedMeta.p,
-            websiteUrl: r.websiteUrl || meta.websiteUrl || embeddedMeta.w,
-            bookingUrl: r.bookingUrl || meta.bookingUrl || embeddedMeta.k,
-            googleMapsUrl: r.googleMapsUrl || meta.googleMapsUrl || embeddedMeta.g
+            businessHours: r.businessHours || meta.businessHours || embeddedMeta.b || known?.businessHours,
+            phone: r.phone || meta.phone || embeddedMeta.p || known?.phone,
+            websiteUrl: r.websiteUrl || meta.websiteUrl || embeddedMeta.w || known?.websiteUrl,
+            bookingUrl: r.bookingUrl || meta.bookingUrl || embeddedMeta.k || known?.bookingUrl,
+            googleMapsUrl: r.googleMapsUrl || meta.googleMapsUrl || embeddedMeta.g || known?.googleMapsUrl
           };
         }) as Restaurant[];
     }
@@ -307,33 +309,45 @@ export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaur
   }> = {};
 
   const sanitizedRestaurants = restaurants.map(r => {
+    const known = getKnownRestaurantMeta(r.id, r.name);
+    const resolvedHours = r.businessHours || known?.businessHours;
+    const resolvedPhone = r.phone || known?.phone;
+    const resolvedWeb = r.websiteUrl || known?.websiteUrl;
+    const resolvedBooking = r.bookingUrl || known?.bookingUrl;
+    const resolvedMaps = r.googleMapsUrl || known?.googleMapsUrl;
+
     if (!r.id.startsWith('__CONFIG_')) {
-      if (r.businessHours || r.phone || r.websiteUrl || r.bookingUrl || r.googleMapsUrl) {
+      if (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps) {
         metaMap[r.id] = {
-          businessHours: r.businessHours,
-          phone: r.phone,
-          websiteUrl: r.websiteUrl,
-          bookingUrl: r.bookingUrl,
-          googleMapsUrl: r.googleMapsUrl
+          businessHours: resolvedHours,
+          phone: resolvedPhone,
+          websiteUrl: resolvedWeb,
+          bookingUrl: resolvedBooking,
+          googleMapsUrl: resolvedMaps
         };
       }
     }
 
     // 雙重備份：在每個店家的 note 結尾附加 [META:{...}]，即使系統設定遺失也能保證該店家資料完整復原
     let combinedNote = (r.note || '').replace(/\s*\[META:\{.*?\}\]/g, '').trim();
-    if (!r.id.startsWith('__CONFIG_') && (r.businessHours || r.phone || r.websiteUrl || r.bookingUrl || r.googleMapsUrl)) {
+    if (!r.id.startsWith('__CONFIG_') && (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps)) {
       const singleMeta = {
-        b: r.businessHours,
-        p: r.phone,
-        w: r.websiteUrl,
-        k: r.bookingUrl,
-        g: r.googleMapsUrl
+        b: resolvedHours,
+        p: resolvedPhone,
+        w: resolvedWeb,
+        k: resolvedBooking,
+        g: resolvedMaps
       };
       combinedNote = combinedNote ? `${combinedNote}\n[META:${JSON.stringify(singleMeta)}]` : `[META:${JSON.stringify(singleMeta)}]`;
     }
 
     return {
       ...r,
+      businessHours: resolvedHours,
+      phone: resolvedPhone,
+      websiteUrl: resolvedWeb,
+      bookingUrl: resolvedBooking,
+      googleMapsUrl: resolvedMaps,
       note: combinedNote || undefined,
       images: (r.images || []).filter(img => typeof img === 'string' && !img.startsWith('data:')),
       dishes: (r.dishes || []).map(d => ({
