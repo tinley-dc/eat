@@ -261,7 +261,7 @@ export const CategoryRandomPickerModal: React.FC<CategoryRandomPickerModalProps>
             }`}
           >
             <Dices className={`w-5 h-5 ${isPicking ? 'animate-spin' : ''}`} />
-            <span>{isPicking ? '命運挑選中...' : '🎲 立即幫我隨機挑一家！'}</span>
+            <span>{isPicking ? '命運挑選中...' : '立即幫我隨機挑一家！'}</span>
           </button>
         )}
 
