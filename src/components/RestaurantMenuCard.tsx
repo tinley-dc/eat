@@ -53,9 +53,9 @@ export const RestaurantMenuCard: React.FC<RestaurantMenuCardProps> = ({
         />
       </div>
 
-      {/* 照片下方：僅單純顯示店家名稱（字體適中偏小，不搶焦） */}
+      {/* 照片下方：僅單純顯示店家名稱 */}
       <div className="pt-2 sm:pt-2.5 px-1 pb-0.5 text-center sm:text-left">
-        <h4 className={`text-xs sm:text-sm font-bold truncate leading-tight transition-colors ${
+        <h4 className={`text-sm sm:text-base font-bold truncate leading-tight transition-colors ${
           isChef
             ? 'text-[#694228] group-hover:text-[#D85A2A]'
             : 'text-stone-700 group-hover:text-japandi-sage-dark'

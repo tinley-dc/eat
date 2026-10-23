@@ -167,18 +167,18 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
 
                   {/* 若為餐點照片，顯示精美餐點標籤徽章 */}
                   {currentItem?.source === 'dish' && (
-                    <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs sm:text-sm font-bold border border-white/20 shadow-md animate-fadeIn">
+                    <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-sm font-bold border border-white/20 shadow-md animate-fadeIn">
                       <span>{currentItem.dishOpinion === 'like' ? (isChef ? '⭐' : '💮') : currentItem.dishOpinion === 'dislike' ? '⚠️' : '🍽️'}</span>
                       <span className="max-w-[150px] sm:max-w-[200px] truncate">{currentItem.dishName || '餐點照片'}</span>
                       {currentItem.dishOpinion === 'like' && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-black ${
                           isChef ? 'bg-[#D85A2A] text-white shadow-xs' : 'bg-japandi-sage text-white'
                         }`}>
                           {isChef ? '招牌' : '必點'}
                         </span>
                       )}
                       {currentItem.dishOpinion === 'dislike' && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-black ${
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-black ${
                           isChef ? 'bg-[#C73E29] text-white shadow-xs' : 'bg-japandi-terracotta text-white'
                         }`}>
                           避雷
@@ -246,7 +246,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                   {/* 右下角照片計數與放大徽章（點擊看大圖，捲動時智慧淡出） */}
                   <div 
                     onClick={() => { setShowLightbox(true); soundManager.playPop(); }}
-                    className={`absolute bottom-6 right-4 sm:right-6 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all duration-300 border border-white/20 ${
+                    className={`absolute bottom-6 right-4 sm:right-6 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-md cursor-pointer transition-all duration-300 border border-white/20 ${
                       isScrolled ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 hover:scale-105'
                     }`}
                   >
@@ -262,7 +262,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
-                  <div className="absolute bottom-6 left-6 z-20 bg-black/50 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-white/20">
+                  <div className="absolute bottom-6 left-6 z-20 bg-black/50 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 border border-white/20">
                     <Camera className="w-3.5 h-3.5" />
                     <span>預設手繪圖（可點擊「編輯」上傳照片）</span>
                   </div>
@@ -279,7 +279,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                 {restaurant.categories.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {restaurant.categories.map((c, i) => (
-                      <span key={i} className={`font-bold text-xs sm:text-sm px-2.5 py-0.5 rounded-lg border select-none cursor-default ${
+                      <span key={i} className={`font-bold text-sm px-3 py-1 rounded-lg border select-none cursor-default ${
                         isChef
                           ? 'bg-[#F4ECE1] text-[#7A543E] border-[#E5DACB]'
                           : 'bg-japandi-oat text-[#3E5C49] border-[#E6DDD2]'
@@ -297,20 +297,20 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
 
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2.5">
                   {restaurant.businessHours && (
-                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold border select-none cursor-default ${
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm sm:text-base font-bold border select-none cursor-default ${
                       isChef
                         ? 'bg-[#FBF6EE] text-[#7D5638] border-[#EADFCF]'
                         : 'bg-[#FDF4EC] text-[#9E5727] border-[#F8E1CE]'
                     }`}>
-                      <Clock className={`w-3.5 h-3.5 shrink-0 ${isChef ? 'text-[#D86824]' : 'text-[#D97706]'}`} />
+                      <Clock className={`w-4 h-4 shrink-0 ${isChef ? 'text-[#D86824]' : 'text-[#D97706]'}`} />
                       <span>{formatBusinessHours(restaurant.businessHours)}</span>
                     </div>
                   )}
                   {restaurant.address && (
-                    <p className={`text-xs sm:text-sm flex items-center gap-1.5 font-medium ${
+                    <p className={`text-sm sm:text-base flex items-center gap-1.5 font-medium ${
                       isChef ? 'text-[#7A543E]' : 'text-japandi-text-muted'
                     }`}>
-                      <MapPin className={`w-3.5 h-3.5 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage'}`} />
+                      <MapPin className={`w-4 h-4 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage'}`} />
                       <span>{restaurant.address}</span>
                     </p>
                   )}
@@ -323,7 +323,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => { onEdit(restaurant); soundManager.playPop(); }}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 font-black text-xs sm:text-sm rounded-xl transition-all whitespace-nowrap shrink-0 border-2 cursor-pointer shadow-sm hover:shadow active:scale-95 active:translate-y-0.5 ${
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 font-black text-sm rounded-xl transition-all whitespace-nowrap shrink-0 border-2 cursor-pointer shadow-sm hover:shadow active:scale-95 active:translate-y-0.5 ${
                       isChef
                         ? 'bg-white hover:bg-[#FFF9EE] text-[#4A2613] hover:text-[#D85A2A] border-[#E5D7C6] hover:border-[#D85A2A]'
                         : 'bg-japandi-oat hover:bg-[#EAE4DC] text-japandi-text border-[#E6DDD2] shadow-soft'
@@ -336,7 +336,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => { onDelete(restaurant.id, restaurant.name); soundManager.playPop(); }}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 font-black text-xs sm:text-sm rounded-xl transition-all whitespace-nowrap shrink-0 border-2 cursor-pointer shadow-sm hover:shadow active:scale-95 active:translate-y-0.5 ${
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 font-black text-sm rounded-xl transition-all whitespace-nowrap shrink-0 border-2 cursor-pointer shadow-sm hover:shadow active:scale-95 active:translate-y-0.5 ${
                       isChef
                         ? 'bg-white hover:bg-[#FDF2F0] text-[#7A543E] hover:text-[#C73E29] border-[#E5D7C6] hover:border-[#F8CEC7]'
                         : 'bg-[#FDF2F0] hover:bg-[#F9E2DE] text-japandi-terracotta-dark border-transparent shadow-soft'
@@ -546,7 +546,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                           </div>
 
                           {dish.note && (
-                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                            <p className={`text-sm sm:text-base mt-1 line-clamp-2 leading-relaxed ${
                               isChef ? 'text-[#7A543E]' : 'text-japandi-sage-dark/90'
                             }`}>
                               💬 {dish.note}
@@ -584,7 +584,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                         }`}
                       >
                         {/* 避雷小徽章固定在卡片右上角 */}
-                        <span className={`absolute top-2.5 right-2.5 text-[11px] font-black px-2 py-0.5 rounded-md border shrink-0 ${
+                        <span className={`absolute top-2.5 right-2.5 text-xs font-black px-2 py-0.5 rounded-md border shrink-0 ${
                           isChef
                             ? 'bg-[#FDF1EF] text-[#C73E29] border-[#F8CEC7]'
                             : 'bg-white text-japandi-terracotta-dark border-[#F2D1CB]'
@@ -622,7 +622,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                           </div>
 
                           {dish.note && (
-                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                            <p className={`text-sm sm:text-base mt-1 line-clamp-2 leading-relaxed ${
                               isChef ? 'text-[#C73E29]/95' : 'text-japandi-terracotta-dark/95'
                             }`}>
                               ⚠️ {dish.note}
@@ -701,7 +701,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                           </div>
 
                           {dish.note && (
-                            <p className={`text-xs sm:text-sm mt-1 line-clamp-2 leading-relaxed ${
+                            <p className={`text-sm sm:text-base mt-1 line-clamp-2 leading-relaxed ${
                               isChef ? 'text-[#9A7B68]' : 'text-japandi-text-muted'
                             }`}>
                               💬 {dish.note}

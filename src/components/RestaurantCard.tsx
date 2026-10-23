@@ -49,7 +49,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       }`}
     >
       {/* 左側照片縮圖區 (精巧正方形，高度完美呼應三行資訊) */}
-      <div className="w-20 h-20 sm:w-[88px] sm:h-[88px] rounded-xl sm:rounded-2xl overflow-hidden shrink-0 relative bg-[#F7F3EE] shadow-2xs">
+      <div className="w-[84px] h-[84px] sm:w-[92px] sm:h-[92px] rounded-xl sm:rounded-2xl overflow-hidden shrink-0 relative bg-[#F7F3EE] shadow-2xs">
         <SafeImage
           src={coverUrl}
           alt={restaurant.name}
@@ -76,7 +76,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
               {restaurant.categories.slice(0, 2).map((cat) => (
                 <span
                   key={cat}
-                  className={`inline-block text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                  className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
                     isChef
                       ? 'bg-[#FFF4E8] text-[#B84E12] border border-[#FCD8BE]/60'
                       : 'bg-[#FAF7F2] text-stone-600 border border-[#EDE6DC]'
@@ -86,7 +86,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                 </span>
               ))}
               {restaurant.categories.length > 2 && (
-                <span className="text-[10px] text-stone-400 font-bold whitespace-nowrap">
+                <span className="text-xs text-stone-400 font-bold whitespace-nowrap">
                   +{restaurant.categories.length - 2}
                 </span>
               )}
@@ -96,24 +96,24 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 
         {/* 營業時間 */}
         {restaurant.businessHours && (
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-stone-600 font-medium truncate">
-            <Clock className={`w-3.5 h-3.5 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-apricot'}`} />
+          <div className="flex items-center gap-1.5 text-sm sm:text-base text-stone-600 font-medium truncate">
+            <Clock className={`w-4 h-4 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-apricot'}`} />
             <span className="truncate">{formatBusinessHours(restaurant.businessHours)}</span>
           </div>
         )}
 
         {/* 地址 */}
         {restaurant.address && (
-          <div className="flex items-center gap-1.5 text-xs text-stone-500 font-normal truncate">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-stone-400" />
+          <div className="flex items-center gap-1.5 text-sm text-stone-600 font-normal truncate">
+            <MapPin className="w-4 h-4 shrink-0 text-stone-400" />
             <span className="truncate">{restaurant.address}</span>
           </div>
         )}
 
         {/* 電話 */}
         {restaurant.phone && (
-          <div className="flex items-center gap-1.5 text-xs text-stone-500 font-normal truncate">
-            <Phone className="w-3.5 h-3.5 shrink-0 text-stone-400" />
+          <div className="flex items-center gap-1.5 text-sm text-stone-600 font-normal truncate">
+            <Phone className="w-4 h-4 shrink-0 text-stone-400" />
             <span className="truncate">{restaurant.phone}</span>
           </div>
         )}

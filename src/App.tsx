@@ -439,25 +439,25 @@ export const App: React.FC = () => {
             <button
               type="button"
               onClick={() => { handleToggleViewMode('menu'); soundManager.playPop(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black transition-all cursor-pointer ${
                 viewMode === 'menu'
                   ? (isChef ? 'bg-[#D85A2A] text-white shadow-sm' : 'bg-japandi-sage text-white shadow-soft')
                   : (isChef ? 'text-[#8A5A38] hover:text-[#D85A2A]' : 'text-japandi-text-muted hover:text-japandi-text')
               }`}
             >
-              <UtensilsCrossed className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <UtensilsCrossed className="w-4 h-4" />
               <span>美味佳餚</span>
             </button>
             <button
               type="button"
               onClick={() => { handleToggleViewMode('store'); soundManager.playPop(); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black transition-all cursor-pointer ${
                 viewMode === 'store'
                   ? (isChef ? 'bg-[#D85A2A] text-white shadow-sm' : 'bg-japandi-sage text-white shadow-soft')
                   : (isChef ? 'text-[#8A5A38] hover:text-[#D85A2A]' : 'text-japandi-text-muted hover:text-japandi-text')
               }`}
             >
-              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Store className="w-4 h-4" />
               <span>餐廳資訊</span>
             </button>
           </div>
@@ -533,7 +533,7 @@ export const App: React.FC = () => {
                       }`}>
                         {group.category.name}
                       </h3>
-                      <span className={`text-xs font-bold ${
+                      <span className={`text-sm font-bold ${
                         isChef ? 'text-[#8A5A38]' : 'text-japandi-text-muted'
                       }`}>
                         （{group.restaurants.length} 間）
