@@ -1151,7 +1151,7 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
                                     ? 'bg-white border-[#E5DACB] text-stone-300 hover:text-[#D85A2A] hover:border-[#D85A2A]/40'
                                     : 'bg-white border-[#EDE6DC] text-stone-300 hover:text-japandi-sage hover:border-japandi-sage/40')
                             }`}
-                            title={featuredDishId === dish.id ? "菜單代表餐點（點擊取消）" : "設為菜單代表餐點（Menu 代表 ⭐）"}
+                            title={featuredDishId === dish.id ? "美味佳餚代表照片（點擊取消）" : "設為美味佳餚代表照片（僅作為首頁封面）"}
                           >
                             <Star
                               className={`w-5 h-5 transition-transform ${

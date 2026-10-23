@@ -504,16 +504,6 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                             : 'bg-[#F3F7F4] border-[#CFE1D4] hover:border-[#B7D4BF]'
                         }`}
                       >
-                        {/* Menu 代表固定在卡片右上角角落，絕不下墜 */}
-                        {restaurant.featuredDishId === dish.id && (
-                          <span 
-                            className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-base sm:text-lg select-none leading-none drop-shadow-xs" 
-                            title="Menu 代表餐點"
-                          >
-                            ⭐
-                          </span>
-                        )}
-
                         {/* 餐點單張照片（點擊放大） */}
                         {dishPhoto && (
                           <button
@@ -536,9 +526,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                           </button>
                         )}
 
-                        <div className={`min-w-0 flex-1 flex flex-col justify-center ${
-                          restaurant.featuredDishId === dish.id ? 'pr-6 sm:pr-7' : ''
-                        }`}>
+                        <div className="min-w-0 flex-1 flex flex-col justify-center">
                           <div className={`font-black text-base sm:text-lg tracking-tight truncate leading-snug ${
                             isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
                           }`}>
@@ -659,16 +647,6 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                             : 'bg-japandi-oat border-[#EDE6DC] hover:border-[#DFD6C9]'
                         }`}
                       >
-                        {/* Menu 代表固定在卡片右上角角落，絕不下墜 */}
-                        {restaurant.featuredDishId === dish.id && (
-                          <span 
-                            className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 text-base sm:text-lg select-none leading-none drop-shadow-xs" 
-                            title="Menu 代表餐點"
-                          >
-                            ⭐
-                          </span>
-                        )}
-
                         {/* 餐點單張照片（點擊放大） */}
                         {dishPhoto && (
                           <button
@@ -691,9 +669,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                           </button>
                         )}
 
-                        <div className={`min-w-0 flex-1 flex flex-col justify-center ${
-                          restaurant.featuredDishId === dish.id ? 'pr-6 sm:pr-7' : ''
-                        }`}>
+                        <div className="min-w-0 flex-1 flex flex-col justify-center">
                           <div className={`font-black text-base sm:text-lg tracking-tight truncate leading-snug ${
                             isChef ? 'text-[#4A2613]' : 'text-japandi-text'
                           }`}>
