@@ -883,10 +883,10 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={`block text-sm font-black mb-1 flex items-center gap-1.5 ${
-                isChef ? 'text-[#4A2613]' : 'text-japandi-text'
+                isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'
               }`}>
-                <Clock className={`w-3.5 h-3.5 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-terracotta'}`} />
-                <span>幾點開始營業 / 營業時間（選填）</span>
+                <Clock className={`w-3.5 h-3.5 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage'}`} />
+                <span>幾點開始營業 / 營業時間（⭐️ 列表優先顯示）</span>
               </label>
               <input
                 type="text"
@@ -899,6 +899,22 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
                     : 'border-[#DCD3C6] focus:border-japandi-sage text-japandi-text'
                 }`}
               />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['11:00 開始營業', '11:30 開始營業', '11:30 - 21:00', '12:00 - 21:00'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => { setBusinessHours(t); soundManager.playPop(); }}
+                    className={`text-[11px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                      businessHours === t
+                        ? (isChef ? 'bg-[#D85A2A] text-white border-[#D85A2A]' : 'bg-japandi-sage text-white border-japandi-sage')
+                        : (isChef ? 'bg-white hover:bg-[#FFF9EE] text-[#7A543E] border-[#E5DACB]' : 'bg-japandi-oat hover:bg-[#EAE4DC] text-japandi-text-muted border-[#E6DDD2]')
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className={`block text-sm font-black mb-1 flex items-center gap-1.5 ${

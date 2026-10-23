@@ -94,26 +94,33 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           )}
         </div>
 
-        {/* 營業時間 */}
-        {restaurant.businessHours && (
-          <div className="flex items-center gap-1.5 text-sm sm:text-base text-stone-600 font-medium truncate">
-            <Clock className={`w-4 h-4 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-apricot'}`} />
-            <span className="truncate">{formatBusinessHours(restaurant.businessHours)}</span>
+        {/* 營業時間：優先且最重要資訊，置頂且顏色突出 */}
+        {restaurant.businessHours ? (
+          <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold truncate">
+            <Clock className={`w-4 h-4 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-[#D97706]'}`} />
+            <span className={`truncate ${isChef ? 'text-[#D85A2A]' : 'text-[#B45309]'}`}>
+              {formatBusinessHours(restaurant.businessHours)}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-stone-400 font-medium truncate">
+            <Clock className="w-3.5 h-3.5 shrink-0 text-stone-300" />
+            <span className="truncate">尚未設定營業時間</span>
           </div>
         )}
 
-        {/* 地址 */}
+        {/* 地址：次要資訊 */}
         {restaurant.address && (
-          <div className="flex items-center gap-1.5 text-sm text-stone-600 font-normal truncate">
-            <MapPin className="w-4 h-4 shrink-0 text-stone-400" />
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-stone-500 font-normal truncate">
+            <MapPin className="w-3.5 h-3.5 shrink-0 text-stone-400" />
             <span className="truncate">{restaurant.address}</span>
           </div>
         )}
 
         {/* 電話 */}
         {restaurant.phone && (
-          <div className="flex items-center gap-1.5 text-sm text-stone-600 font-normal truncate">
-            <Phone className="w-4 h-4 shrink-0 text-stone-400" />
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-stone-500 font-normal truncate">
+            <Phone className="w-3.5 h-3.5 shrink-0 text-stone-400" />
             <span className="truncate">{restaurant.phone}</span>
           </div>
         )}
