@@ -4,7 +4,8 @@ import {
   Database, 
   Dices,
   Lock,
-  Unlock
+  Unlock,
+  Search
 } from 'lucide-react';
 import { DoodleSun, ChefHatIcon } from './Doodles';
 import { soundManager } from '../utils/sound';
@@ -19,6 +20,9 @@ interface HeaderProps {
   onToggleAdminLock?: () => void;
   soundEnabled?: boolean;
   setSoundEnabled?: (enabled: boolean) => void;
+  isSearchOpen?: boolean;
+  onToggleSearch?: () => void;
+  hasSearchQuery?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +32,9 @@ export const Header: React.FC<HeaderProps> = ({
   onResetToAll,
   isAdminUnlocked = false,
   onToggleAdminLock,
+  isSearchOpen = false,
+  onToggleSearch,
+  hasSearchQuery = false,
 }) => {
   const { theme } = useTheme();
   const isChef = theme === 'chef_menu';
@@ -75,6 +82,26 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 右側：核心操作群 */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+
+          {/* 搜尋按鈕 🔍 */}
+          {onToggleSearch && (
+            <button
+              onClick={() => { onToggleSearch(); soundManager.playPop(); }}
+              title={isSearchOpen ? '關閉搜尋' : '搜尋美食或店家'}
+              className={`btn-pebble flex items-center justify-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-2 rounded-full font-bold text-xs sm:text-sm border transition-all shadow-soft select-none shrink-0 ${
+                isSearchOpen || hasSearchQuery
+                  ? (isChef
+                      ? 'bg-[#F3A935] text-[#4A2613] border-[#F3A935] shadow-md'
+                      : 'bg-japandi-sage text-white border-transparent shadow-soft')
+                  : (isChef
+                      ? 'bg-white/10 hover:bg-white/20 active:bg-white/25 text-[#FFF4E0] border-white/20 backdrop-blur-md'
+                      : 'bg-white/90 hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#EDE6DC] backdrop-blur-md')
+              }`}
+            >
+              <Search className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">{isSearchOpen ? '收起' : '搜尋'}</span>
+            </button>
+          )}
 
           {/* 隨機挑選按鈕：隨便 🎲 */}
           <button

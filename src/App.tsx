@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Restaurant, CategoryItem } from './types';
 import { 
   db,
@@ -23,6 +23,7 @@ import { CategoryRandomPickerModal } from './components/CategoryRandomPickerModa
 import { CategoryManagementModal } from './components/CategoryManagementModal';
 import { BackupModal } from './components/BackupModal';
 import { AdminLockModal } from './components/AdminLockModal';
+import { BottomNav } from './components/BottomNav';
 import { 
   DoodleCarrot, 
   DoodleStrawberry, 
@@ -47,9 +48,21 @@ export const App: React.FC = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
+
+  const handleToggleSearch = () => {
+    setIsSearchOpen(prev => {
+      const next = !prev;
+      if (next) {
+        setTimeout(() => searchInputRef.current?.focus(), 120);
+      }
+      return next;
+    });
+  };
 
   // 分類標籤清單（支援自訂排序與內容）
   const [categories, setCategories] = useState<CategoryItem[]>(() => loadCategories());
@@ -341,10 +354,13 @@ export const App: React.FC = () => {
         }}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
+        isSearchOpen={isSearchOpen}
+        onToggleSearch={handleToggleSearch}
+        hasSearchQuery={Boolean(searchQuery.trim())}
       />
 
-      {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄) */}
-      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-6 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
+      {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄，手機底部留有 BottomNav 高度空間) */}
+      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-24 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
         <div className="absolute top-36 -left-7 pointer-events-none opacity-75 hidden 2xl:block">
           <DoodleTomato className="w-8 h-8 -rotate-6" />
         </div>
@@ -363,35 +379,54 @@ export const App: React.FC = () => {
 
         {/* 搜尋與分類導覽列 (置中精緻寬度) */}
         <div className="max-w-2xl mx-auto w-full space-y-3">
-          {/* 藥丸全圓角搜尋列 */}
-          <div className="relative">
-            <Search className={`w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 ${
-              isChef ? 'text-[#8A5A3C]' : 'text-japandi-text-muted'
-            }`} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isChef ? "搜尋想吃的招牌美食、漢堡或店家..." : "搜尋想吃的食物或店家..."}
-              className={`w-full pl-11 pr-4 py-3 rounded-full font-bold text-sm sm:text-base shadow-soft transition-all ${
-                isChef
-                  ? 'border-2 border-[#E8D2B5] focus:border-[#F3A935] bg-white text-[#4A2613] placeholder-[#9D765A] focus:outline-none'
-                  : 'border border-[#E4DCCE] focus:border-japandi-sage bg-white/90 text-japandi-text placeholder-japandi-text-muted focus:outline-none'
-              }`}
-            />
-            {searchQuery && (
+          {/* 展開式藥丸全圓角搜尋列 (由 Header 搜尋按鈕觸發) */}
+          {isSearchOpen && (
+            <div className="animate-fadeIn flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className={`w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 ${
+                  isChef ? 'text-[#8A5A3C]' : 'text-japandi-text-muted'
+                }`} />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={isChef ? "搜尋想吃的招牌美食、漢堡或店家..." : "搜尋想吃的食物或店家..."}
+                  className={`w-full pl-11 pr-14 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base shadow-soft transition-all ${
+                    isChef
+                      ? 'border-2 border-[#E8D2B5] focus:border-[#F3A935] bg-white text-[#4A2613] placeholder-[#9D765A] focus:outline-none'
+                      : 'border border-[#E4DCCE] focus:border-japandi-sage bg-white/90 text-japandi-text placeholder-japandi-text-muted focus:outline-none'
+                  }`}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold rounded-full px-2.5 py-1 ${
+                      isChef 
+                        ? 'bg-[#F5ECE1] text-[#7A543E] hover:text-[#4A2613]' 
+                        : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
+                    }`}
+                  >
+                    清除
+                  </button>
+                )}
+              </div>
               <button
-                onClick={() => setSearchQuery('')}
-                className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-bold rounded-full px-3 py-0.5 ${
+                onClick={() => {
+                  setIsSearchOpen(false);
+                  setSearchQuery('');
+                  soundManager.playPop();
+                }}
+                className={`px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-full shrink-0 transition-all ${
                   isChef 
-                    ? 'bg-[#F5ECE1] text-[#7A543E] hover:text-[#4A2613]' 
+                    ? 'bg-[#F5ECE1] text-[#7A543E] hover:bg-[#EBDDCB]' 
                     : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
                 }`}
               >
-                清除
+                收起
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* 分類篩選橫條 */}
           <CategoryFilter
@@ -405,7 +440,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* 快速提示、分類筆數與瀏覽模式切換 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div className="flex items-center justify-between gap-3 px-1">
           <div className={`text-sm sm:text-base font-black ${
             isChef ? 'text-[#7D533A]' : 'text-japandi-text-muted'
           }`}>
@@ -418,8 +453,8 @@ export const App: React.FC = () => {
             </span>
           </div>
 
-          {/* 雙模式切換膠囊按鈕：[ 📋 美味佳餚 ] / [ 🏪 餐廳資訊 ] */}
-          <div className={`inline-flex items-center p-1 rounded-2xl border self-start sm:self-auto shrink-0 ${
+          {/* 電腦/平板雙模式切換膠囊按鈕（手機模式下隱藏，由底部 BottomNav 承接） */}
+          <div className={`hidden sm:inline-flex items-center p-1 rounded-2xl border shrink-0 ${
             isChef ? 'bg-[#FFFDF9] border-[#EADFCF]' : 'bg-white border-[#E5DDD2] shadow-soft'
           }`}>
             <button
@@ -639,9 +674,15 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* 背景自動同步浮動提示 */}
+      {/* 手機底部導覽列（切換美味佳餚／餐廳資訊，僅在手機螢幕顯示） */}
+      <BottomNav
+        viewMode={viewMode}
+        onToggleViewMode={handleToggleViewMode}
+      />
+
+      {/* 背景自動同步浮動提示（在手機版避開底部導覽列高度） */}
       {syncToastMessage && (
-        <div className="fixed bottom-6 right-4 sm:right-6 z-50 bg-[#2D2A26] text-white px-4 py-2.5 rounded-2xl shadow-float flex items-center gap-2.5 text-sm font-bold animate-fadeIn border border-white/10 backdrop-blur-md">
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 bg-[#2D2A26] text-white px-4 py-2.5 rounded-2xl shadow-float flex items-center gap-2.5 text-sm font-bold animate-fadeIn border border-white/10 backdrop-blur-md">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{syncToastMessage}</span>
         </div>
