@@ -88,7 +88,7 @@ function getOrCreateSheet(sheetName, headers) {
 
 // 讀取所有資料
 function getAllData() {
-  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID"]);
+  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID", "營業時間", "電話", "官網", "訂位", "GoogleMaps"]);
   var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明", "照片網址清單"]);
 
   var restRows = restSheet.getDataRange().getValues();
@@ -125,6 +125,11 @@ function getAllData() {
       note: String(row[6] || ''),
       updatedAt: Number(row[7]) || Date.now(),
       featuredDishId: row[8] ? String(row[8]) : undefined,
+      businessHours: row[9] ? String(row[9]) : undefined,
+      phone: row[10] ? String(row[10]) : undefined,
+      websiteUrl: row[11] ? String(row[11]) : undefined,
+      bookingUrl: row[12] ? String(row[12]) : undefined,
+      googleMapsUrl: row[13] ? String(row[13]) : undefined,
       dishes: []
     };
     restaurantsMap[id] = rest;
@@ -165,8 +170,8 @@ function getAllData() {
 
 // 批次覆蓋儲存資料
 function saveAllData(restaurants) {
-  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID"]);
-  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明"]);
+  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID", "營業時間", "電話", "官網", "訂位", "GoogleMaps"]);
+  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明", "照片網址清單"]);
 
   // 清除舊內容保留標題
   if (restSheet.getLastRow() > 1) {
@@ -200,7 +205,12 @@ function saveAllData(restaurants) {
       r.address || '',
       r.note || '',
       r.updatedAt || Date.now(),
-      r.featuredDishId || ''
+      r.featuredDishId || '',
+      r.businessHours || '',
+      r.phone || '',
+      r.websiteUrl || '',
+      r.bookingUrl || '',
+      r.googleMapsUrl || ''
     ]);
 
     if (r.dishes && r.dishes.length > 0) {
@@ -220,7 +230,7 @@ function saveAllData(restaurants) {
   }
 
   if (restDataToInsert.length > 0) {
-    restSheet.getRange(2, 1, restDataToInsert.length, 9).setValues(restDataToInsert);
+    restSheet.getRange(2, 1, restDataToInsert.length, 14).setValues(restDataToInsert);
   }
   if (dishDataToInsert.length > 0) {
     dishSheet.getRange(2, 1, dishDataToInsert.length, 6).setValues(dishDataToInsert);

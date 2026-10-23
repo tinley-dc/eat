@@ -325,6 +325,11 @@ export async function syncWithCloud(): Promise<{ count: number; message: string 
         if (r.updatedAt && r.updatedAt > (local.updatedAt || 0)) {
           map.set(r.id, {
             ...r,
+            businessHours: r.businessHours || local.businessHours,
+            phone: r.phone || local.phone,
+            websiteUrl: r.websiteUrl || local.websiteUrl,
+            bookingUrl: r.bookingUrl || local.bookingUrl,
+            googleMapsUrl: r.googleMapsUrl || local.googleMapsUrl,
             images: preservedImages,
             dishes: mergedDishes
           });

@@ -115,8 +115,50 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
         }
       }
 
-      // 回傳時排除系統設定紀錄，只保留真實店家名單
-      return result.data.filter((item: { id?: string }) => !item.id?.startsWith('__CONFIG_')) as Restaurant[];
+      // 提取並儲存雲端同步的店家中繼資料 (營業時間、電話、官網、訂位、地圖)
+      const metaItem = result.data.find((item: { id?: string; note?: string }) => item.id === '__CONFIG_RESTAURANTS_META__');
+      let metaMap: Record<string, {
+        businessHours?: string;
+        phone?: string;
+        websiteUrl?: string;
+        bookingUrl?: string;
+        googleMapsUrl?: string;
+      }> = {};
+      if (metaItem && metaItem.note) {
+        try {
+          metaMap = JSON.parse(metaItem.note) || {};
+        } catch (e) {
+          console.warn('解析雲端店家中繼資料失敗:', e);
+        }
+      }
+
+      // 回傳時排除系統設定紀錄，並完整復原營業時間、電話、官網等中繼資料
+      return result.data
+        .filter((item: { id?: string }) => !item.id?.startsWith('__CONFIG_'))
+        .map((r: Restaurant) => {
+          const meta = metaMap[r.id] || {};
+          let note = r.note || '';
+
+          // 若 note 內含有備用的 [META:{...}] 標籤，解析並過濾乾淨
+          let embeddedMeta: any = {};
+          const metaMatch = note.match(/\[META:(\{.*?\})\]/);
+          if (metaMatch && metaMatch[1]) {
+            try {
+              embeddedMeta = JSON.parse(metaMatch[1]);
+              note = note.replace(/\s*\[META:\{.*?\}\]/g, '').trim();
+            } catch {}
+          }
+
+          return {
+            ...r,
+            note: note || undefined,
+            businessHours: r.businessHours || meta.businessHours || embeddedMeta.b,
+            phone: r.phone || meta.phone || embeddedMeta.p,
+            websiteUrl: r.websiteUrl || meta.websiteUrl || embeddedMeta.w,
+            bookingUrl: r.bookingUrl || meta.bookingUrl || embeddedMeta.k,
+            googleMapsUrl: r.googleMapsUrl || meta.googleMapsUrl || embeddedMeta.g
+          };
+        }) as Restaurant[];
     }
     return null;
   } catch (err) {
@@ -255,16 +297,51 @@ export async function uploadPendingPhotos(
 export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaurant[]): Promise<boolean> {
   if (!scriptUrl.trim()) return false;
 
-  // Google 試算表儲存格上限僅 5 萬字元
-  // 在送出前最後一道防護：只保留合法網址，未成功上傳至雲端的本地 Base64 暫時排除避免試算表崩潰
-  const sanitizedRestaurants = restaurants.map(r => ({
-    ...r,
-    images: (r.images || []).filter(img => typeof img === 'string' && !img.startsWith('data:')),
-    dishes: (r.dishes || []).map(d => ({
-      ...d,
-      photos: (d.photos || []).filter(p => typeof p === 'string' && !p.startsWith('data:'))
-    }))
-  }));
+  // 收集所有店家的完整中繼擴充資料 (營業時間、電話、官網、訂位、地圖)
+  const metaMap: Record<string, {
+    businessHours?: string;
+    phone?: string;
+    websiteUrl?: string;
+    bookingUrl?: string;
+    googleMapsUrl?: string;
+  }> = {};
+
+  const sanitizedRestaurants = restaurants.map(r => {
+    if (!r.id.startsWith('__CONFIG_')) {
+      if (r.businessHours || r.phone || r.websiteUrl || r.bookingUrl || r.googleMapsUrl) {
+        metaMap[r.id] = {
+          businessHours: r.businessHours,
+          phone: r.phone,
+          websiteUrl: r.websiteUrl,
+          bookingUrl: r.bookingUrl,
+          googleMapsUrl: r.googleMapsUrl
+        };
+      }
+    }
+
+    // 雙重備份：在每個店家的 note 結尾附加 [META:{...}]，即使系統設定遺失也能保證該店家資料完整復原
+    let combinedNote = (r.note || '').replace(/\s*\[META:\{.*?\}\]/g, '').trim();
+    if (!r.id.startsWith('__CONFIG_') && (r.businessHours || r.phone || r.websiteUrl || r.bookingUrl || r.googleMapsUrl)) {
+      const singleMeta = {
+        b: r.businessHours,
+        p: r.phone,
+        w: r.websiteUrl,
+        k: r.bookingUrl,
+        g: r.googleMapsUrl
+      };
+      combinedNote = combinedNote ? `${combinedNote}\n[META:${JSON.stringify(singleMeta)}]` : `[META:${JSON.stringify(singleMeta)}]`;
+    }
+
+    return {
+      ...r,
+      note: combinedNote || undefined,
+      images: (r.images || []).filter(img => typeof img === 'string' && !img.startsWith('data:')),
+      dishes: (r.dishes || []).map(d => ({
+        ...d,
+        photos: (d.photos || []).filter(p => typeof p === 'string' && !p.startsWith('data:'))
+      }))
+    };
+  });
 
   // 同步附加自訂分類設定至試算表，確保所有裝置與 GitHub Pages 分類順序皆能即時同步
   const currentCats = loadCategories();
@@ -292,9 +369,22 @@ export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaur
     updatedAt: Date.now()
   } : null;
 
+  // 同步附加所有店家營業時間與中繼資料對照表（確保免更新 Apps Script 也能跨裝置完整同步）
+  const metaRecord: Restaurant = {
+    id: '__CONFIG_RESTAURANTS_META__',
+    name: '__CONFIG_RESTAURANTS_META__',
+    categories: [],
+    images: [],
+    coverIndex: 0,
+    dishes: [],
+    note: JSON.stringify(metaMap),
+    updatedAt: Date.now()
+  };
+
   const finalRestaurantsToSave = [
     ...sanitizedRestaurants.filter(r => !r.id.startsWith('__CONFIG_')),
     configRecord,
+    metaRecord,
     ...(secRecord ? [secRecord] : [])
   ];
 

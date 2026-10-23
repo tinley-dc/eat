@@ -88,8 +88,8 @@ function getOrCreateSheet(sheetName, headers) {
 
 // 讀取所有資料
 function getAllData() {
-  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間"]);
-  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明"]);
+  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID", "營業時間", "電話", "官網", "訂位", "GoogleMaps"]);
+  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明", "照片網址清單"]);
 
   var restRows = restSheet.getDataRange().getValues();
   var dishRows = dishSheet.getDataRange().getValues();
@@ -124,6 +124,12 @@ function getAllData() {
       address: String(row[5] || ''),
       note: String(row[6] || ''),
       updatedAt: Number(row[7]) || Date.now(),
+      featuredDishId: row[8] ? String(row[8]) : undefined,
+      businessHours: row[9] ? String(row[9]) : undefined,
+      phone: row[10] ? String(row[10]) : undefined,
+      websiteUrl: row[11] ? String(row[11]) : undefined,
+      bookingUrl: row[12] ? String(row[12]) : undefined,
+      googleMapsUrl: row[13] ? String(row[13]) : undefined,
       dishes: []
     };
     restaurantsMap[id] = rest;
@@ -136,11 +142,18 @@ function getAllData() {
     if (!dRow[0] || !dRow[1]) continue;
     var dishId = String(dRow[0]);
     var restId = String(dRow[1]);
+    var photos = [];
+    try {
+      photos = dRow[5] ? JSON.parse(dRow[5]) : [];
+    } catch(e) {
+      photos = dRow[5] ? [String(dRow[5])] : [];
+    }
     var dish = {
       id: dishId,
       name: String(dRow[2] || ''),
       opinion: String(dRow[3] || 'neutral'),
-      note: String(dRow[4] || '')
+      note: String(dRow[4] || ''),
+      photos: photos
     };
 
     if (restaurantsMap[restId]) {
@@ -157,8 +170,8 @@ function getAllData() {
 
 // 批次覆蓋儲存資料
 function saveAllData(restaurants) {
-  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間"]);
-  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明"]);
+  var restSheet = getOrCreateSheet(SHEET_RESTAURANTS, ["店家ID", "店家名稱", "分類", "照片網址清單", "封面索引", "地址備忘", "店家備註", "更新時間", "代表餐點ID", "營業時間", "電話", "官網", "訂位", "GoogleMaps"]);
+  var dishSheet = getOrCreateSheet(SHEET_DISHES, ["餐點ID", "店家ID", "餐點名稱", "推薦等級", "備註說明", "照片網址清單"]);
 
   // 清除舊內容保留標題
   if (restSheet.getLastRow() > 1) {
@@ -191,28 +204,36 @@ function saveAllData(restaurants) {
       r.coverIndex || 0,
       r.address || '',
       r.note || '',
-      r.updatedAt || Date.now()
+      r.updatedAt || Date.now(),
+      r.featuredDishId || '',
+      r.businessHours || '',
+      r.phone || '',
+      r.websiteUrl || '',
+      r.bookingUrl || '',
+      r.googleMapsUrl || ''
     ]);
 
     if (r.dishes && r.dishes.length > 0) {
       for (var d = 0; d < r.dishes.length; d++) {
         var dish = r.dishes[d];
+        var dishPhotosStr = JSON.stringify(dish.photos || []);
         dishDataToInsert.push([
           dish.id,
           r.id,
           dish.name,
           dish.opinion,
-          dish.note || ''
+          dish.note || '',
+          dishPhotosStr
         ]);
       }
     }
   }
 
   if (restDataToInsert.length > 0) {
-    restSheet.getRange(2, 1, restDataToInsert.length, 8).setValues(restDataToInsert);
+    restSheet.getRange(2, 1, restDataToInsert.length, 14).setValues(restDataToInsert);
   }
   if (dishDataToInsert.length > 0) {
-    dishSheet.getRange(2, 1, dishDataToInsert.length, 5).setValues(dishDataToInsert);
+    dishSheet.getRange(2, 1, dishDataToInsert.length, 6).setValues(dishDataToInsert);
   }
 
   return { status: 'success', message: '已同步 ' + restaurants.length + ' 間店家至 Google 試算表！' };
@@ -234,16 +255,24 @@ function uploadImageToDrive(base64Data, fileName) {
     targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   }
 
+  // 自動判斷正確的 MIME 格式（支援 WebP / PNG / JPEG，徹底解決解碼空白問題）
+  var mimeType = "image/jpeg";
+  if (base64Data.indexOf("data:image/webp") === 0 || (fileName && fileName.indexOf(".webp") > -1)) {
+    mimeType = "image/webp";
+  } else if (base64Data.indexOf("data:image/png") === 0 || (fileName && fileName.indexOf(".png") > -1)) {
+    mimeType = "image/png";
+  }
+
   var pureBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
   var decoded = Utilities.base64Decode(pureBase64);
-  var blob = Utilities.newBlob(decoded, "image/jpeg", fileName);
+  var blob = Utilities.newBlob(decoded, mimeType, fileName);
 
   var file = targetFolder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-  // 取得公開下載/直接瀏覽網址 (支援直接嵌於網頁與試算表 IMAGE 函數)
+  // 取得公開下載/直接瀏覽網址（採用高穩定度 Google Drive Thumbnail CDN）
   var fileId = file.getId();
-  var directViewUrl = "https://lh3.googleusercontent.com/d/" + fileId;
+  var directViewUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1200";
 
   return {
     status: 'success',
