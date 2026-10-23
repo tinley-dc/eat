@@ -12,6 +12,7 @@ import {
 } from './db';
 import { getCloudConfig, saveCloudConfig } from './services/cloudSync';
 import { loadCategories, saveCategories, syncCategoriesWithRestaurants } from './utils/categoryStorage';
+import { isDeviceRemembered, setDeviceRemembered } from './utils/securityStorage';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
 import { RestaurantCard } from './components/RestaurantCard';
@@ -66,9 +67,9 @@ export const App: React.FC = () => {
   const [isCloudOpen, setIsCloudOpen] = useState<boolean>(false);
   const [isBackupOpen, setIsBackupOpen] = useState<boolean>(false);
 
-  // 家長管理鎖狀態（預設鎖定，可儲存在 sessionStorage）
+  // 家長管理鎖狀態（支援「記住此裝置」或 sessionStorage）
   const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
-    return sessionStorage.getItem('wanna_eat_admin_unlocked') === 'true';
+    return isDeviceRemembered() || sessionStorage.getItem('wanna_eat_admin_unlocked') === 'true';
   });
   const [isAdminLockModalOpen, setIsAdminLockModalOpen] = useState<boolean>(false);
 
@@ -215,7 +216,7 @@ export const App: React.FC = () => {
 
   // 計算各分類店家數量
   const categoryCounts = useMemo(() => {
-    const validRestaurants = restaurants.filter(r => r.id !== '__CONFIG_CATEGORIES__');
+    const validRestaurants = restaurants.filter(r => !r.id.startsWith('__CONFIG_'));
     const counts: Record<string, number> = { '全部': validRestaurants.length };
     validRestaurants.forEach((r) => {
       r.categories.forEach((cat) => {
@@ -228,7 +229,7 @@ export const App: React.FC = () => {
   // 篩選與搜尋
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter((r) => {
-      if (r.id === '__CONFIG_CATEGORIES__') return false;
+      if (r.id.startsWith('__CONFIG_')) return false;
       const matchCategory =
         selectedCategory === '全部' || r.categories.includes(selectedCategory);
 
@@ -341,6 +342,10 @@ export const App: React.FC = () => {
         onToggleAdminLock={() => {
           if (isAdminUnlocked) {
             setIsAdminUnlocked(false);
+            setDeviceRemembered(false);
+            sessionStorage.removeItem('wanna_eat_admin_unlocked');
+            setSyncToastMessage('🔒 已安全鎖定管理模式');
+            setTimeout(() => setSyncToastMessage(null), 2200);
             setIsFormOpen(false);
             setIsCategoryManageOpen(false);
             setIsCloudOpen(false);

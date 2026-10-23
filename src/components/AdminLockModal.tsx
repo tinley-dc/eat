@@ -3,9 +3,21 @@ import {
   X, 
   Lock, 
   ShieldCheck, 
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff,
+  KeyRound,
+  CheckCircle2,
+  Smartphone
 } from 'lucide-react';
 import { soundManager } from '../utils/sound';
+import { 
+  hasPasswordConfigured, 
+  verifyPassword, 
+  setupPassword, 
+  setDeviceRemembered
+} from '../utils/securityStorage';
+import { triggerAutoSync } from '../db';
 
 interface AdminLockModalProps {
   isOpen: boolean;
@@ -18,92 +30,157 @@ export const AdminLockModal: React.FC<AdminLockModalProps> = ({
   onClose,
   onUnlock,
 }) => {
-  const [num1, setNum1] = useState(7);
-  const [num2, setNum2] = useState(8);
-  const [answer, setAnswer] = useState('');
+  const [mode, setMode] = useState<'unlock' | 'setup' | 'change'>('unlock');
+  
+  // 密碼輸入狀態
+  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [holdProgress, setHoldProgress] = useState(0);
-  const [isHolding, setIsHolding] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 每次開啟時生成新的隨機九九乘法驗證題
+  // 每次開啟時檢查是否已設定過密碼
   useEffect(() => {
     if (isOpen) {
-      const a = Math.floor(Math.random() * 6) + 4; // 4 ~ 9
-      const b = Math.floor(Math.random() * 6) + 4; // 4 ~ 9
-      setNum1(a);
-      setNum2(b);
-      setAnswer('');
+      const isConfigured = hasPasswordConfigured();
+      setMode(isConfigured ? 'unlock' : 'setup');
+      setPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setCurrentPassword('');
+      setShowPassword(false);
+      setRememberMe(true);
       setErrorMessage('');
-      setHoldProgress(0);
-      setIsHolding(false);
+      setSuccessMessage('');
+      setIsSubmitting(false);
 
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100);
+      }, 150);
     }
   }, [isOpen]);
 
-  // 長按 2 秒計時器
-  useEffect(() => {
-    if (isHolding) {
-      const stepMs = 25;
-      const totalMs = 1800; // 1.8 秒
-      const increment = (stepMs / totalMs) * 100;
-
-      holdTimerRef.current = setInterval(() => {
-        setHoldProgress((prev) => {
-          if (prev + increment >= 100) {
-            clearInterval(holdTimerRef.current!);
-            handleSuccess();
-            return 100;
-          }
-          return prev + increment;
-        });
-      }, stepMs);
-    } else {
-      if (holdTimerRef.current) {
-        clearInterval(holdTimerRef.current);
-        holdTimerRef.current = null;
-      }
-      setHoldProgress(0);
-    }
-
-    return () => {
-      if (holdTimerRef.current) clearInterval(holdTimerRef.current);
-    };
-  }, [isHolding]);
-
   if (!isOpen) return null;
 
-  const handleSuccess = () => {
-    soundManager.playVictory();
-    onUnlock();
-    onClose();
-  };
-
-  const handleSubmitMath = (e: React.FormEvent) => {
+  // 處理解鎖驗證
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = parseInt(answer.trim(), 10);
-    if (parsed === num1 * num2) {
-      handleSuccess();
-    } else {
-      soundManager.playPop();
-      setErrorMessage('答案不正確喔！請重新計算，或直接使用下方的長按解鎖。');
-      setAnswer('');
-      inputRef.current?.focus();
+    if (!password.trim()) {
+      setErrorMessage('請輸入管理密碼');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const isValid = await verifyPassword(password);
+      if (isValid) {
+        soundManager.playVictory();
+        setDeviceRemembered(rememberMe);
+        onUnlock();
+        onClose();
+      } else {
+        soundManager.playPop();
+        setErrorMessage('密碼不正確，請重新輸入');
+        setPassword('');
+        inputRef.current?.focus();
+      }
+    } catch (err) {
+      setErrorMessage('驗證過程發生錯誤，請稍後再試');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleStartHold = () => {
-    setIsHolding(true);
-    soundManager.playPop();
+  // 處理初次設定密碼
+  const handleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword.trim()) {
+      setErrorMessage('請輸入欲設定的管理密碼');
+      return;
+    }
+    if (newPassword.trim().length < 4) {
+      setErrorMessage('為確保安全，密碼長度至少需 4 碼');
+      return;
+    }
+    if (newPassword.trim() !== confirmPassword.trim()) {
+      setErrorMessage('兩次輸入的密碼不一致，請再次確認');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      await setupPassword(newPassword.trim());
+      // 觸發雲端自動備份，將加密後雜湊同步至 Google 試算表
+      triggerAutoSync();
+      soundManager.playVictory();
+      setDeviceRemembered(rememberMe);
+      onUnlock();
+      onClose();
+    } catch (err) {
+      setErrorMessage('儲存密碼失敗，請稍後再試');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEndHold = () => {
-    setIsHolding(false);
+  // 處理變更密碼
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword.trim()) {
+      setErrorMessage('請輸入目前舊密碼');
+      return;
+    }
+    if (!newPassword.trim()) {
+      setErrorMessage('請輸入新密碼');
+      return;
+    }
+    if (newPassword.trim().length < 4) {
+      setErrorMessage('新密碼長度至少需 4 碼');
+      return;
+    }
+    if (newPassword.trim() !== confirmPassword.trim()) {
+      setErrorMessage('兩次輸入的新密碼不一致');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const isCurrentValid = await verifyPassword(currentPassword);
+      if (!isCurrentValid) {
+        soundManager.playPop();
+        setErrorMessage('目前的舊密碼輸入錯誤');
+        return;
+      }
+
+      await setupPassword(newPassword.trim());
+      triggerAutoSync();
+      soundManager.playVictory();
+      setSuccessMessage('密碼修改成功！');
+      setTimeout(() => {
+        setMode('unlock');
+        setSuccessMessage('');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }, 1200);
+    } catch (err) {
+      setErrorMessage('變更密碼失敗，請稍後再試');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -115,97 +192,261 @@ export const AdminLockModal: React.FC<AdminLockModalProps> = ({
         <button
           onClick={() => { onClose(); soundManager.playPop(); }}
           className="absolute top-5 right-5 p-1.5 text-japandi-text-muted hover:text-japandi-text rounded-full hover:bg-japandi-oat transition-colors"
+          aria-label="關閉"
         >
           <X className="w-5 h-5 stroke-[2]" />
         </button>
 
+        {/* 標題區域 */}
         <div className="flex items-center gap-2.5 mb-2.5">
           <div className="w-9 h-9 rounded-2xl bg-[#FCF2E9] text-japandi-apricot-dark border border-[#F6DEC9] flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-japandi-apricot" />
+            {mode === 'setup' ? (
+              <KeyRound className="w-5 h-5 text-japandi-apricot" />
+            ) : (
+              <ShieldCheck className="w-5 h-5 text-japandi-apricot" />
+            )}
           </div>
           <div>
-            <h2 className="text-xl font-black text-japandi-text">家長管理模式解鎖</h2>
-            <span className="text-xs text-japandi-text-muted block">避免小朋友誤觸新增、刪除或修改</span>
+            <h2 className="text-xl font-black text-japandi-text">
+              {mode === 'setup' && '建立專屬管理密碼'}
+              {mode === 'unlock' && '管理員密碼驗證'}
+              {mode === 'change' && '修改專屬管理密碼'}
+            </h2>
+            <span className="text-xs text-japandi-text-muted block">
+              {mode === 'setup' && '設定只有您知道的密碼，保護店家不被外人改動'}
+              {mode === 'unlock' && '輸入管理密碼即可新增、編輯或管理店家'}
+              {mode === 'change' && '更新您的管理密碼並自動同步至雲端'}
+            </span>
           </div>
         </div>
 
-        <p className="text-sm text-japandi-text-muted mb-5 leading-relaxed bg-white/70 p-3.5 rounded-2xl border border-[#EDE6DC]">
-          👶 <b>小寶貝安全瀏覽中</b>：目前僅開放翻看手帳、餐點照片、推薦心得與抽籤挑選。請家長透過以下方式驗證以解鎖完整管理功能。
-        </p>
+        {/* 模式 1：密碼解鎖 */}
+        {mode === 'unlock' && (
+          <form onSubmit={handleUnlock} className="space-y-4 mt-4">
+            <div className="p-4 bg-white rounded-2xl border border-[#EDE6DC] shadow-soft space-y-3">
+              <label className="block text-xs font-bold text-japandi-text-muted">
+                請輸入管理密碼（或 PIN 碼）
+              </label>
 
-        {/* 驗證方式 1：家長乘法快問快答 */}
-        <form onSubmit={handleSubmitMath} className="space-y-3 mb-5">
-          <div className="p-4 bg-white rounded-2xl border border-[#EDE6DC] shadow-soft">
-            <label className="block text-xs font-bold text-japandi-text-muted mb-2">
-              方式一：請家長回答算式（小朋友解不開，大人一秒答）
-            </label>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 font-mono text-xl sm:text-2xl font-black text-japandi-text bg-[#FAF7F2] px-3.5 py-2 rounded-xl border border-[#E5DDD2]">
-                <span>{num1}</span>
-                <span className="text-japandi-apricot">×</span>
-                <span>{num2}</span>
-                <span>=</span>
+              <div className="relative">
+                <input
+                  ref={inputRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="請輸入密碼"
+                  className="w-full pl-3.5 pr-10 py-3 text-base sm:text-lg font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white tracking-widest"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+                  aria-label={showPassword ? '隱藏密碼' : '顯示密碼'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
 
-              <input
-                ref={inputRef}
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder="請輸入答案"
-                className="w-28 sm:w-32 px-3 py-2 text-center text-lg sm:text-xl font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
-              />
-
-              <button
-                type="submit"
-                className="btn-pebble px-4 py-2 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-black text-sm shrink-0 shadow-soft"
-              >
-                解鎖
-              </button>
+              {/* 在這台裝置記住我 */}
+              <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-japandi-sage focus:ring-japandi-sage accent-japandi-sage cursor-pointer"
+                />
+                <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-japandi-sage" />
+                  在這台裝置記住我（下次開啟免輸入）
+                </span>
+              </label>
             </div>
 
             {errorMessage && (
-              <div className="mt-2.5 flex items-center gap-1.5 text-xs text-japandi-terracotta-dark font-bold">
+              <div className="flex items-center gap-1.5 text-xs text-japandi-terracotta-dark font-bold px-1 animate-fadeIn">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
-          </div>
-        </form>
 
-        {/* 驗證方式 2：長按 2 秒解鎖 */}
-        <div className="space-y-2">
-          <div className="relative overflow-hidden rounded-2xl border border-[#EDE6DC] bg-white shadow-soft">
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-pebble flex-1 py-3 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-black text-sm shadow-soft flex items-center justify-center gap-2 transition-transform active:scale-95"
+              >
+                <Lock className="w-4 h-4" />
+                <span>{isSubmitting ? '驗證中...' : '驗證解鎖'}</span>
+              </button>
+            </div>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => { setMode('change'); setErrorMessage(''); }}
+                className="text-xs text-japandi-text-muted hover:text-japandi-text underline transition-colors"
+              >
+                想要修改管理密碼？
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* 模式 2：初次設定密碼 */}
+        {mode === 'setup' && (
+          <form onSubmit={handleSetup} className="space-y-4 mt-4">
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 leading-relaxed font-medium">
+              💡 這是第一次開啟管理模式，請為自己設定一組<b>專屬管理密碼</b>（例如 4 位數 PIN 碼）。密碼會加密備份至您的 Google 試算表，<b>GitHub 原始碼完全看不到</b>！
+            </div>
+
+            <div className="p-4 bg-white rounded-2xl border border-[#EDE6DC] shadow-soft space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-japandi-text-muted mb-1.5">
+                  設定新密碼（至少 4 碼）
+                </label>
+                <div className="relative">
+                  <input
+                    ref={inputRef}
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="請輸入新密碼"
+                    className="w-full pl-3.5 pr-10 py-2.5 text-base font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-japandi-text-muted mb-1.5">
+                  再次確認新密碼
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="請再次輸入相同密碼"
+                  className="w-full px-3.5 py-2.5 text-base font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
+                />
+              </div>
+
+              {/* 在這台裝置記住我 */}
+              <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded text-japandi-sage focus:ring-japandi-sage accent-japandi-sage cursor-pointer"
+                />
+                <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-japandi-sage" />
+                  在這台裝置記住我（推薦）
+                </span>
+              </label>
+            </div>
+
+            {errorMessage && (
+              <div className="flex items-center gap-1.5 text-xs text-japandi-terracotta-dark font-bold px-1 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             <button
-              type="button"
-              onMouseDown={handleStartHold}
-              onMouseUp={handleEndHold}
-              onMouseLeave={handleEndHold}
-              onTouchStart={handleStartHold}
-              onTouchEnd={handleEndHold}
-              className="w-full py-3.5 px-4 flex items-center justify-center gap-2 font-bold text-sm text-japandi-text select-none cursor-pointer active:scale-[0.99] transition-all relative z-10"
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-pebble w-full py-3 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-black text-sm shadow-soft flex items-center justify-center gap-2 transition-transform active:scale-95"
             >
-              <Lock className={`w-4 h-4 transition-transform ${isHolding ? 'scale-110 text-japandi-sage' : 'text-japandi-text-muted'}`} />
-              <span>
-                {isHolding 
-                  ? `持續按住中... ${Math.round(holdProgress)}%` 
-                  : '方式二：按住此處不放 2 秒快速解鎖 👉'}
-              </span>
+              <KeyRound className="w-4 h-4" />
+              <span>{isSubmitting ? '儲存中...' : '儲存密碼並進入管理'}</span>
             </button>
+          </form>
+        )}
 
-            {/* 長按進度條填滿背景 */}
-            <div 
-              className="absolute left-0 top-0 bottom-0 bg-[#E1EFE4] transition-all duration-75 pointer-events-none"
-              style={{ width: `${holdProgress}%` }}
-            />
-          </div>
-          <span className="text-[11px] text-japandi-text-muted text-center block">
-            小朋友通常只會快點，大人只要長按 2 秒就能自動放行
-          </span>
-        </div>
+        {/* 模式 3：修改密碼 */}
+        {mode === 'change' && (
+          <form onSubmit={handleChangePassword} className="space-y-4 mt-4">
+            <div className="p-4 bg-white rounded-2xl border border-[#EDE6DC] shadow-soft space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-japandi-text-muted mb-1.5">
+                  目前舊密碼
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="請輸入目前密碼"
+                  className="w-full px-3.5 py-2.5 text-base font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-japandi-text-muted mb-1.5">
+                  設定新密碼（至少 4 碼）
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="請輸入新密碼"
+                  className="w-full px-3.5 py-2.5 text-base font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-japandi-text-muted mb-1.5">
+                  再次確認新密碼
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="請再次輸入新密碼"
+                  className="w-full px-3.5 py-2.5 text-base font-black rounded-xl border-2 border-[#DCD3C6] focus:border-japandi-sage focus:outline-none bg-white"
+                />
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="flex items-center gap-1.5 text-xs text-japandi-terracotta-dark font-bold px-1 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold px-1 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setMode('unlock'); setErrorMessage(''); }}
+                className="flex-1 py-2.5 border border-[#DCD3C6] text-stone-600 hover:bg-stone-50 rounded-xl font-bold text-sm transition-colors"
+              >
+                返回
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-pebble flex-1 py-2.5 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-black text-sm shadow-soft transition-transform active:scale-95"
+              >
+                {isSubmitting ? '更新中...' : '確認更新'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

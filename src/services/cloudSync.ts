@@ -1,6 +1,7 @@
 import { Restaurant, CloudConfig } from '../types';
 import { compressBase64 } from '../utils/imageCompressor';
 import { loadCategories, saveCategories } from '../utils/categoryStorage';
+import { getSecurityConfig, saveSecurityConfig } from '../utils/securityStorage';
 
 const CONFIG_KEY = 'wanna_eat_cloud_config';
 
@@ -101,8 +102,21 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
         }
       }
 
+      // 提取並儲存雲端同步的安全管理密碼設定
+      const secItem = result.data.find((item: { id?: string; note?: string }) => item.id === '__CONFIG_SECURITY__');
+      if (secItem && secItem.note) {
+        try {
+          const parsedSec = JSON.parse(secItem.note);
+          if (parsedSec && parsedSec.passwordHash) {
+            saveSecurityConfig(parsedSec);
+          }
+        } catch (e) {
+          console.warn('解析雲端安全設定失敗:', e);
+        }
+      }
+
       // 回傳時排除系統設定紀錄，只保留真實店家名單
-      return result.data.filter((item: { id?: string }) => item.id !== '__CONFIG_CATEGORIES__') as Restaurant[];
+      return result.data.filter((item: { id?: string }) => !item.id?.startsWith('__CONFIG_')) as Restaurant[];
     }
     return null;
   } catch (err) {
@@ -265,9 +279,23 @@ export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaur
     updatedAt: Date.now()
   };
 
+  // 同步附加安全管理密碼設定至試算表（不可逆雜湊，保護管理模式）
+  const secConfig = getSecurityConfig();
+  const secRecord: Restaurant | null = secConfig && secConfig.passwordHash ? {
+    id: '__CONFIG_SECURITY__',
+    name: '__CONFIG_SECURITY__',
+    categories: [],
+    images: [],
+    coverIndex: 0,
+    dishes: [],
+    note: JSON.stringify(secConfig),
+    updatedAt: Date.now()
+  } : null;
+
   const finalRestaurantsToSave = [
-    ...sanitizedRestaurants.filter(r => r.id !== '__CONFIG_CATEGORIES__'),
-    configRecord
+    ...sanitizedRestaurants.filter(r => !r.id.startsWith('__CONFIG_')),
+    configRecord,
+    ...(secRecord ? [secRecord] : [])
   ];
 
   try {
