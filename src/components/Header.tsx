@@ -103,11 +103,11 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* 隨機挑選按鈕：隨便 🎲 */}
+          {/* 隨機挑選按鈕：隨便 🎲（手機版移至底部導覽列中央，電腦/平板版保留在此） */}
           <button
             onClick={() => { onOpenRandomPicker(); soundManager.playPop(); }}
             title="隨機幫我挑一家好吃的"
-            className={`btn-pebble flex items-center justify-center gap-1 sm:gap-1.5 p-2 sm:px-4 sm:py-2 rounded-full font-black text-xs sm:text-sm shadow-soft transition-all whitespace-nowrap shrink-0 border ${
+            className={`btn-pebble hidden sm:flex items-center justify-center gap-1 sm:gap-1.5 p-2 sm:px-4 sm:py-2 rounded-full font-black text-xs sm:text-sm shadow-soft transition-all whitespace-nowrap shrink-0 border ${
               isChef
                 ? 'bg-[#F3A935]/25 hover:bg-[#F3A935]/35 active:bg-[#F3A935]/40 backdrop-blur-md text-[#FFE082] border-[#F3A935]/50'
                 : 'bg-japandi-sage hover:bg-japandi-sage-dark text-white border-transparent'
