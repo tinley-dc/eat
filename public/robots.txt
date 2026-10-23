@@ -1,2 +1,25 @@
+# Allow social media bots to fetch Open Graph previews
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: line-poker
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Disallow general search indexers if desired
 User-agent: *
 Disallow: /
