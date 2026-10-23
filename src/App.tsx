@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Restaurant, CloudConfig, CategoryItem } from './types';
+import { Restaurant, CategoryItem } from './types';
 import { 
   db,
   initializeDatabase, 
@@ -21,7 +21,6 @@ import { RestaurantDetailModal } from './components/RestaurantDetailModal';
 import { RestaurantFormModal } from './components/RestaurantFormModal';
 import { CategoryRandomPickerModal } from './components/CategoryRandomPickerModal';
 import { CategoryManagementModal } from './components/CategoryManagementModal';
-import { CloudConfigModal } from './components/CloudConfigModal';
 import { BackupModal } from './components/BackupModal';
 import { AdminLockModal } from './components/AdminLockModal';
 import { 
@@ -49,9 +48,7 @@ export const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('全部');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
-  const [cloudConfig, setCloudConfig] = useState<CloudConfig>(getCloudConfig());
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
   // 分類標籤清單（支援自訂排序與內容）
@@ -63,7 +60,6 @@ export const App: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [isRandomPickerOpen, setIsRandomPickerOpen] = useState<boolean>(false);
   const [isCategoryManageOpen, setIsCategoryManageOpen] = useState<boolean>(false);
-  const [isCloudOpen, setIsCloudOpen] = useState<boolean>(false);
   const [isBackupOpen, setIsBackupOpen] = useState<boolean>(false);
 
   // 家長管理鎖狀態（支援「記住此裝置」或 sessionStorage）
@@ -90,22 +86,14 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleStatus = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail.status === 'syncing') {
-        setCloudSyncStatus('syncing');
-      } else if (detail.status === 'success') {
-        setCloudSyncStatus('success');
+      if (detail.status === 'success') {
         setSyncToastMessage('☁️ 已自動同步至 Google 試算表！');
         setTimeout(() => {
           setSyncToastMessage(null);
-          setCloudSyncStatus('idle');
         }, 3200);
-        setCloudConfig(getCloudConfig());
         getAllRestaurants().then(updated => {
           setRestaurants(updated);
         });
-      } else if (detail.status === 'error') {
-        setCloudSyncStatus('error');
-        setTimeout(() => setCloudSyncStatus('idle'), 4000);
       }
     };
 
@@ -170,7 +158,6 @@ export const App: React.FC = () => {
               scriptUrl: decoded,
               autoSync: true
             });
-            setCloudConfig(getCloudConfig());
             // 抹除網址上的參數以保持網址乾淨
             const cleanUrl = window.location.pathname + window.location.hash;
             window.history.replaceState({}, '', cleanUrl);
@@ -335,11 +322,8 @@ export const App: React.FC = () => {
       <Header
         onOpenAddModal={() => { setEditingRestaurant(null); setIsFormOpen(true); }}
         onOpenRandomPicker={() => setIsRandomPickerOpen(true)}
-        onOpenCloudModal={() => setIsCloudOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
         onResetToAll={() => setSelectedCategory('全部')}
-        isCloudConnected={Boolean(cloudConfig.scriptUrl)}
-        isSyncingCloud={cloudSyncStatus === 'syncing'}
         isAdminUnlocked={isAdminUnlocked}
         onToggleAdminLock={() => {
           if (isAdminUnlocked) {
@@ -350,7 +334,6 @@ export const App: React.FC = () => {
             setTimeout(() => setSyncToastMessage(null), 2200);
             setIsFormOpen(false);
             setIsCategoryManageOpen(false);
-            setIsCloudOpen(false);
             setIsBackupOpen(false);
           } else {
             setIsAdminLockModalOpen(true);
@@ -638,14 +621,6 @@ export const App: React.FC = () => {
         onUpdateCategories={handleUpdateCategories}
       />
 
-      {/* Google 試算表雲端設定彈窗 */}
-      <CloudConfigModal
-        isOpen={isCloudOpen}
-        onClose={() => setIsCloudOpen(false)}
-        config={cloudConfig}
-        onConfigUpdated={setCloudConfig}
-        onDataSynced={loadData}
-      />
 
       {/* 備份與資料彈窗 */}
       <BackupModal
