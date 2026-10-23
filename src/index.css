@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-japandi-bg text-japandi-text antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* 隱藏滾動條但保持可滾動 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 溫和回彈按鈕效果 */
+.btn-pebble {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-pebble:active {
+  transform: scale(0.95);
+}
+
+/* 繪本小印章效果 */
+.stamp-badge {
+  position: relative;
+  letter-spacing: 0.02em;
+}
+
+/* 自然旋轉 */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+/* 溫和呼吸光效 */
+@keyframes warm-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-float {
+  animation: warm-float 3s ease-in-out infinite;
+}
