@@ -45,6 +45,26 @@ export async function initializeDatabase(): Promise<Restaurant[]> {
   }
   // 自動將舊照片與範例餐點更新為具備餐點照片的最新示範資料
   const list = await db.restaurants.toArray();
+
+  // 若本地只殘留當初系統預設的示範假店家，立即從雲端抓取真實名單完全替換
+  const isOnlySeedData = list.length > 0 && list.every(local => 
+    SEED_RESTAURANTS.some(seed => seed.id === local.id)
+  );
+  if (isOnlySeedData) {
+    const config = getCloudConfig();
+    if (config.scriptUrl && config.scriptUrl.trim()) {
+      try {
+        const remote = await pullFromGoogleSheets(config.scriptUrl.trim());
+        if (remote && remote.length > 0) {
+          await db.restaurants.clear();
+          await db.restaurants.bulkAdd(remote);
+          return remote;
+        }
+      } catch (e) {
+        console.warn('替換殘留示範店家失敗:', e);
+      }
+    }
+  }
   for (const r of list) {
     let modified = false;
     if (r.id === 'rest-1' && r.images[0]?.includes('1582878826629')) {

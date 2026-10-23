@@ -8,8 +8,7 @@ import {
   RefreshCw, 
   CheckCircle2, 
   AlertCircle,
-  HelpCircle,
-  Smartphone
+  HelpCircle
 } from 'lucide-react';
 import { testConnection, saveCloudConfig } from '../services/cloudSync';
 import { syncWithCloud } from '../db';
@@ -37,26 +36,9 @@ export const CloudConfigModal: React.FC<CloudConfigModalProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [showTutorial, setShowTutorial] = useState(!config.scriptUrl);
 
   if (!isOpen) return null;
-
-  const handleCopyShareLink = async () => {
-    if (!scriptUrl.trim()) {
-      alert('請先輸入 Google Apps Script 網址！');
-      return;
-    }
-    soundManager.playPop();
-    const shareUrl = `${window.location.origin}${window.location.pathname}?sync=${encodeURIComponent(scriptUrl.trim())}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopiedShareLink(true);
-      setTimeout(() => setCopiedShareLink(false), 3000);
-    } catch {
-      prompt('請複製以下連結並傳至手機開啟：', shareUrl);
-    }
-  };
 
   const handleCopyScript = async () => {
     soundManager.playPop();
@@ -251,25 +233,13 @@ export const CloudConfigModal: React.FC<CloudConfigModalProps> = ({
             💡 <b>何時需要點「立即雙向同步」？</b> 平常新增店家只要開啟下方的「背景自動同步」，系統就會<b>自動存進試算表</b>！只有在更換手機/電腦，想立即下載雲端上的最新名單時，才需要點此按鈕。
           </p>
 
-          <div className="p-4 bg-[#F2F7F4] border border-[#CDE1D3] rounded-2xl space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-japandi-sage-dark shrink-0" />
-                <span className="font-bold text-sm text-japandi-text">換新手機或家人使用？</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyShareLink}
-                className="btn-pebble flex items-center gap-1.5 px-3 py-1.5 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-bold text-xs shadow-soft transition-all shrink-0"
-              >
-                {copiedShareLink ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedShareLink ? '已複製專屬連結！' : '📱 複製手機直達同步連結'}</span>
-              </button>
+          <div className="p-4 bg-[#F2F7F4] border border-[#CDE1D3] rounded-2xl space-y-1.5">
+            <div className="flex items-center gap-2 text-japandi-sage-dark font-black text-sm">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>✨ 已全自動連線 Google 試算表</span>
             </div>
             <p className="text-xs text-japandi-text-muted leading-relaxed">
-              {scriptUrl.trim() 
-                ? '點擊複製後，用 LINE 或 AirDrop 傳給手機點開，手機就會自動綁定並下載所有店家，免手動貼網址！' 
-                : '💡 先在上方貼上 Google 試算表網址後，點此按鈕即可產生專屬連結，用 LINE 傳給新手機一鍵完成同步！'}
+              系統已內建您的專屬試算表網址！任何新手機、平板或電腦直接打開網站，<b>通通不需要做任何設定</b>，就會自動載入您的 31 間店家名單，並隨時保持最新同步。
             </p>
           </div>
 
