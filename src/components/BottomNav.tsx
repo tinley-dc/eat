@@ -20,13 +20,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   return (
     <nav 
       aria-label="手機底部導覽列"
-      className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pt-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] transition-all duration-300 border-t ${
+      className={`sm:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pb-[max(0.4rem,env(safe-area-inset-bottom))] transition-all duration-300 border-t ${
         isChef
-          ? 'bg-[#FFFBF2]/95 backdrop-blur-md border-[#F1E0CD] shadow-[0_-2px_12px_rgba(138,90,56,0.06)]'
-          : 'bg-white/95 backdrop-blur-md border-[#EFECE6] shadow-[0_-2px_12px_rgba(45,42,38,0.05)]'
+          ? 'bg-[#FFFBF2]/95 backdrop-blur-md border-[#F1E0CD] shadow-[0_-3px_12px_rgba(138,90,56,0.06)]'
+          : 'bg-white/95 backdrop-blur-md border-[#EFECE6] shadow-[0_-3px_12px_rgba(45,42,38,0.05)]'
       }`}
     >
-      <div className="max-w-sm mx-auto flex items-center justify-between gap-2 relative">
+      <div className="max-w-sm mx-auto flex items-center justify-between gap-3 h-12 relative">
         {/* 📋 美味佳餚 Tab */}
         <button
           type="button"
@@ -34,7 +34,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             onToggleViewMode('menu');
             soundManager.playPop();
           }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl font-black text-xs transition-all duration-200 cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl font-black text-xs transition-all duration-200 cursor-pointer ${
             viewMode === 'menu'
               ? (isChef
                   ? 'bg-[#FDEFD9] text-[#D85A2A] shadow-xs'
@@ -48,8 +48,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span>美味佳餚</span>
         </button>
 
-        {/* 🎲 隨便按鈕（微幅向上微凸約 8px，精緻小巧不擋版面） */}
-        <div className="relative -top-2 flex-shrink-0">
+        {/* 🎲 隨便按鈕（微凸約 6px，無突兀外圈，對齊自然，精緻立體） */}
+        <div className="flex-shrink-0 relative -top-1.5">
           <button
             type="button"
             onClick={() => {
@@ -57,10 +57,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               soundManager.playPop();
             }}
             title="隨機幫我挑一家好吃的"
-            className={`flex items-center justify-center w-10.5 h-10.5 rounded-full cursor-pointer transition-all duration-200 active:scale-90 active:rotate-12 select-none shadow-md shrink-0 ${
+            className={`flex items-center justify-center w-11 h-11 rounded-full cursor-pointer transition-all duration-200 active:scale-90 active:rotate-12 select-none shadow-md border-2 ${
               isChef
-                ? 'bg-[#D85A2A] text-white ring-3 ring-[#FFFBF2] hover:bg-[#C24D20]'
-                : 'bg-japandi-apricot text-white ring-3 ring-white hover:bg-japandi-apricot-dark'
+                ? 'bg-[#D85A2A] text-white border-[#FDEFD9] shadow-[0_3px_10px_rgba(216,90,42,0.3)] hover:bg-[#C24D20]'
+                : 'bg-japandi-apricot text-white border-white shadow-[0_3px_10px_rgba(244,162,97,0.3)] hover:bg-japandi-apricot-dark'
             }`}
           >
             <Dices className="w-5 h-5 stroke-[2.2]" />
@@ -74,7 +74,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             onToggleViewMode('store');
             soundManager.playPop();
           }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl font-black text-xs transition-all duration-200 cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl font-black text-xs transition-all duration-200 cursor-pointer ${
             viewMode === 'store'
               ? (isChef
                   ? 'bg-[#FDEFD9] text-[#D85A2A] shadow-xs'
