@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-2 w-full bg-[#F3A935] bg-[radial-gradient(#FFF9EE_1.5px,transparent_1.5px)] [background-size:10px_10px]" />
       )}
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 py-2 sm:py-3.5 flex items-center justify-between gap-1.5 sm:gap-3">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 md:px-8 py-1.5 sm:py-3.5 flex items-center justify-between gap-1.5 sm:gap-3">
         {/* 左側：微笑小太陽 / 蓬蓬廚師帽 ＋ 標題（點擊回首頁/全部） */}
         <div 
           onClick={() => {

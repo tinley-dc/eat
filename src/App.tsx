@@ -360,7 +360,7 @@ export const App: React.FC = () => {
       />
 
       {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄，手機底部留有超薄 BottomNav 高度空間) */}
-      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-2.5 sm:pt-3.5 pb-16 sm:pb-8 flex-1 w-full space-y-5 sm:space-y-6 relative z-10">
+      <main className="max-w-md sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-0.5 sm:pt-3.5 pb-16 sm:pb-8 flex-1 w-full space-y-4 sm:space-y-6 relative z-10">
         <div className="absolute top-36 -left-7 pointer-events-none opacity-75 hidden 2xl:block">
           <DoodleTomato className="w-8 h-8 -rotate-6" />
         </div>
@@ -378,7 +378,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* 搜尋與分類導覽列 (置中精緻寬度) */}
-        <div className="max-w-2xl mx-auto w-full space-y-3">
+        <div className="max-w-2xl mx-auto w-full space-y-2 sm:space-y-3">
           {/* 展開式藥丸全圓角搜尋列 (由 Header 搜尋按鈕觸發) */}
           {isSearchOpen && (
             <div className="animate-fadeIn flex items-center gap-2">

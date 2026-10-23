@@ -65,7 +65,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   );
 
   return (
-    <div className="w-full flex items-center gap-2 py-2">
+    <div className="w-full flex items-center gap-2 pt-0 pb-1 sm:py-2">
       {/* 永久固定在最左側的「全部」按鈕 */}
       <div className="shrink-0">
         {renderCategoryButton(allCategory, isAllSelected, allCount)}
@@ -77,7 +77,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       }`} />
 
       {/* 其餘可橫向滑動的分類標籤 */}
-      <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar py-1">
+      <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5 sm:py-1">
         <div className="flex items-center gap-2 min-w-max pr-2">
           {otherCategories.map((cat) => {
             const isSelected = selectedCategory === cat.name;
