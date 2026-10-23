@@ -7,7 +7,8 @@ import {
   addRestaurant, 
   updateRestaurant, 
   deleteRestaurant,
-  syncWithCloud
+  syncWithCloud,
+  triggerAutoSync
 } from './db';
 import { getCloudConfig, saveCloudConfig } from './services/cloudSync';
 import { loadCategories, saveCategories, syncCategoriesWithRestaurants } from './utils/categoryStorage';
@@ -85,7 +86,7 @@ export const App: React.FC = () => {
     sessionStorage.setItem('wanna_eat_admin_unlocked', isAdminUnlocked ? 'true' : 'false');
   }, [isAdminUnlocked]);
 
-  // 監聽背景自動同步事件
+  // 監聽背景自動同步事件與雲端分類更新
   useEffect(() => {
     const handleStatus = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -104,11 +105,23 @@ export const App: React.FC = () => {
         setTimeout(() => setCloudSyncStatus('idle'), 4000);
       }
     };
+
+    const handleCategoriesUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail) && detail.length > 0) {
+        setCategories(detail);
+      }
+    };
+
     window.addEventListener('cloud-sync-status', handleStatus);
-    return () => window.removeEventListener('cloud-sync-status', handleStatus);
+    window.addEventListener('cloud-categories-updated', handleCategoriesUpdate);
+    return () => {
+      window.removeEventListener('cloud-sync-status', handleStatus);
+      window.removeEventListener('cloud-categories-updated', handleCategoriesUpdate);
+    };
   }, []);
 
-  // 更新自訂分類並自動持久化儲存（若有修改名稱或刪除，同步更新所有餐廳）
+  // 更新自訂分類並自動持久化儲存（若有修改名稱或刪除，同步更新所有餐廳並推送至雲端）
   const handleUpdateCategories = async (newCategories: CategoryItem[], oldName?: string, newName?: string) => {
     setCategories(newCategories);
     saveCategories(newCategories);
@@ -133,6 +146,9 @@ export const App: React.FC = () => {
         setRestaurants(updated);
       }
     }
+
+    // 自動排程同步至 Google 試算表，確保所有裝置與 GitHub Pages 永遠保持同一順序
+    triggerAutoSync();
   };
 
   // 初始化資料庫
@@ -199,8 +215,9 @@ export const App: React.FC = () => {
 
   // 計算各分類店家數量
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { '全部': restaurants.length };
-    restaurants.forEach((r) => {
+    const validRestaurants = restaurants.filter(r => r.id !== '__CONFIG_CATEGORIES__');
+    const counts: Record<string, number> = { '全部': validRestaurants.length };
+    validRestaurants.forEach((r) => {
       r.categories.forEach((cat) => {
         counts[cat] = (counts[cat] || 0) + 1;
       });
@@ -211,6 +228,7 @@ export const App: React.FC = () => {
   // 篩選與搜尋
   const filteredRestaurants = useMemo(() => {
     return restaurants.filter((r) => {
+      if (r.id === '__CONFIG_CATEGORIES__') return false;
       const matchCategory =
         selectedCategory === '全部' || r.categories.includes(selectedCategory);
 

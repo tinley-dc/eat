@@ -41,15 +41,15 @@ export interface CategoryItem {
 
 export const PRESET_CATEGORIES: CategoryItem[] = [
   { id: 'all', name: '全部', icon: '🍽️' },
+  { id: 'breakfast', name: '早午餐', icon: '🥪' },
   { id: 'combo', name: '複合', icon: '🍱' },
   { id: 'rice', name: '飯食', icon: '🍚' },
   { id: 'noodle', name: '麵食', icon: '🍜' },
-  { id: 'fastfood', name: '速食', icon: '🍔' },
-  { id: 'hotpot', name: '火鍋', icon: '🍲' },
   { id: 'steak', name: '排餐', icon: '🥩' },
   { id: 'dumpling', name: '水餃', icon: '🥟' },
-  { id: 'breakfast', name: '早午餐', icon: '🥪' },
-  { id: 'other', name: '其它', icon: '🍽️' },
+  { id: 'hotpot', name: '火鍋', icon: '🍲' },
+  { id: 'fastfood', name: '速食', icon: '🍔' },
+  { id: 'other', name: '其它', icon: '🍴' },
 ];
 
 export const DEFAULT_RESTAURANT_IMAGE = '/default_restaurant_cover.jpg';

@@ -1,5 +1,6 @@
 import { Restaurant, CloudConfig } from '../types';
 import { compressBase64 } from '../utils/imageCompressor';
+import { loadCategories, saveCategories } from '../utils/categoryStorage';
 
 const CONFIG_KEY = 'wanna_eat_cloud_config';
 
@@ -84,7 +85,24 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
     const result = await res.json();
 
     if (result.status === 'success' && Array.isArray(result.data)) {
-      return result.data as Restaurant[];
+      // 提取並儲存雲端同步的自訂分類設定
+      const configItem = result.data.find((item: { id?: string; note?: string }) => item.id === '__CONFIG_CATEGORIES__');
+      if (configItem && configItem.note) {
+        try {
+          const parsedCats = JSON.parse(configItem.note);
+          if (Array.isArray(parsedCats) && parsedCats.length > 0) {
+            saveCategories(parsedCats);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('cloud-categories-updated', { detail: parsedCats }));
+            }
+          }
+        } catch (e) {
+          console.warn('解析雲端自訂分類設定失敗:', e);
+        }
+      }
+
+      // 回傳時排除系統設定紀錄，只保留真實店家名單
+      return result.data.filter((item: { id?: string }) => item.id !== '__CONFIG_CATEGORIES__') as Restaurant[];
     }
     return null;
   } catch (err) {
@@ -234,12 +252,30 @@ export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaur
     }))
   }));
 
+  // 同步附加自訂分類設定至試算表，確保所有裝置與 GitHub Pages 分類順序皆能即時同步
+  const currentCats = loadCategories();
+  const configRecord: Restaurant = {
+    id: '__CONFIG_CATEGORIES__',
+    name: '__CONFIG_CATEGORIES__',
+    categories: [],
+    images: [],
+    coverIndex: 0,
+    dishes: [],
+    note: JSON.stringify(currentCats),
+    updatedAt: Date.now()
+  };
+
+  const finalRestaurantsToSave = [
+    ...sanitizedRestaurants.filter(r => r.id !== '__CONFIG_CATEGORIES__'),
+    configRecord
+  ];
+
   try {
     const res = await fetch(scriptUrl, {
       method: 'POST',
       body: JSON.stringify({
         action: 'save_all',
-        restaurants: sanitizedRestaurants
+        restaurants: finalRestaurantsToSave
       }),
       headers: {
         'Content-Type': 'text/plain;charset=utf-8', // GAS 跨域 POST 避免觸發 OPTIONS preflight 阻擋

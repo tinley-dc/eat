@@ -1,6 +1,6 @@
 import { CategoryItem, PRESET_CATEGORIES, Restaurant } from '../types';
 
-export const CATEGORIES_STORAGE_KEY = 'wanna_eat_custom_categories_v2';
+export const CATEGORIES_STORAGE_KEY = 'wanna_eat_custom_categories_v3';
 
 /**
  * 載入自訂排序與自訂命名的分類清單

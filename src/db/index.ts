@@ -44,7 +44,8 @@ export async function initializeDatabase(): Promise<Restaurant[]> {
     return SEED_RESTAURANTS;
   }
   // 自動將舊照片與範例餐點更新為具備餐點照片的最新示範資料
-  const list = await db.restaurants.toArray();
+  const rawList = await db.restaurants.toArray();
+  const list = rawList.filter(r => r.id !== '__CONFIG_CATEGORIES__');
 
   // 若本地只殘留當初系統預設的示範假店家，立即從雲端抓取真實名單完全替換
   const isOnlySeedData = list.length > 0 && list.every(local => 
@@ -178,7 +179,8 @@ export async function updateFeaturedDish(restaurantId: string, dishId: string): 
 
 // 取得所有店家（依最近更新時間降冪排序，確保編輯後穩定置頂且絕不遺漏任何店家）
 export async function getAllRestaurants(): Promise<Restaurant[]> {
-  const list = await db.restaurants.toArray();
+  const rawList = await db.restaurants.toArray();
+  const list = rawList.filter(r => r.id !== '__CONFIG_CATEGORIES__');
   list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   const nameMap: Record<string, string> = {
     '麥當勞': 'rest-1792643196497',
@@ -230,7 +232,7 @@ export async function resetToDefaultData(): Promise<Restaurant[]> {
 
 // 自動同步排程 (debounce)
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-function triggerAutoSync() {
+export function triggerAutoSync() {
   const config = getCloudConfig();
   if (!config.autoSync || !config.scriptUrl) return;
 
