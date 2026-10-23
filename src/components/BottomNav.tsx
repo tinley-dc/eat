@@ -26,7 +26,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           : 'bg-white/95 backdrop-blur-md border-[#EFECE6] shadow-[0_-2px_12px_rgba(45,42,38,0.05)]'
       }`}
     >
-      <div className="max-w-sm mx-auto flex items-center justify-between gap-2">
+      <div className="max-w-sm mx-auto flex items-center justify-between gap-2 relative">
         {/* 📋 美味佳餚 Tab */}
         <button
           type="button"
@@ -48,22 +48,24 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span>美味佳餚</span>
         </button>
 
-        {/* 🎲 隨便按鈕（精緻小巧圓鈕，齊平不突起，超薄省空間） */}
-        <button
-          type="button"
-          onClick={() => {
-            onOpenRandomPicker();
-            soundManager.playPop();
-          }}
-          title="隨機幫我挑一家好吃的"
-          className={`flex items-center justify-center w-9 h-9 rounded-full cursor-pointer transition-all duration-200 active:scale-90 active:rotate-12 select-none shadow-xs shrink-0 ${
-            isChef
-              ? 'bg-[#D85A2A] text-white hover:bg-[#C24D20]'
-              : 'bg-japandi-apricot text-white hover:bg-japandi-apricot-dark'
-          }`}
-        >
-          <Dices className="w-4.5 h-4.5 stroke-[2.2]" />
-        </button>
+        {/* 🎲 隨便按鈕（微幅向上微凸約 8px，精緻小巧不擋版面） */}
+        <div className="relative -top-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              onOpenRandomPicker();
+              soundManager.playPop();
+            }}
+            title="隨機幫我挑一家好吃的"
+            className={`flex items-center justify-center w-10.5 h-10.5 rounded-full cursor-pointer transition-all duration-200 active:scale-90 active:rotate-12 select-none shadow-md shrink-0 ${
+              isChef
+                ? 'bg-[#D85A2A] text-white ring-3 ring-[#FFFBF2] hover:bg-[#C24D20]'
+                : 'bg-japandi-apricot text-white ring-3 ring-white hover:bg-japandi-apricot-dark'
+            }`}
+          >
+            <Dices className="w-5 h-5 stroke-[2.2]" />
+          </button>
+        </div>
 
         {/* 🏪 餐廳資訊 Tab */}
         <button
