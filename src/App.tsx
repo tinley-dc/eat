@@ -439,22 +439,9 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* 快速提示、分類筆數與瀏覽模式切換 */}
-        <div className="flex items-center justify-between gap-3 px-1">
-          <div className={`text-sm sm:text-base font-black ${
-            isChef ? 'text-[#7D533A]' : 'text-japandi-text-muted'
-          }`}>
-            <span>
-              {selectedCategory === '全部' 
-                ? (isChef ? '🥞 小廚神美食推薦菜單' : '📖 美食手帳名單') 
-                : `分類：${selectedCategory}`
-              }
-              （共 {filteredRestaurants.length} 間）
-            </span>
-          </div>
-
-          {/* 電腦/平板雙模式切換膠囊按鈕（手機模式下隱藏，由底部 BottomNav 承接） */}
-          <div className={`hidden sm:inline-flex items-center p-1 rounded-2xl border shrink-0 ${
+        {/* 電腦/平板雙模式切換膠囊按鈕（手機模式下由底部 BottomNav 承接，故手機下完全隱藏） */}
+        <div className="hidden sm:flex justify-end px-1">
+          <div className={`inline-flex items-center p-1 rounded-2xl border shrink-0 ${
             isChef ? 'bg-[#FFFDF9] border-[#EADFCF]' : 'bg-white border-[#E5DDD2] shadow-soft'
           }`}>
             <button

@@ -48,8 +48,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span>美味佳餚</span>
         </button>
 
-        {/* 🎲 隨便逗趣大按鈕（凸起懸浮 FAB） */}
-        <div className="flex-shrink-0 px-2.5 relative -top-3.5">
+        {/* 🎲 隨便按鈕（純色扁平無漸層，只放骰子 icon，不需文字） */}
+        <div className="flex-shrink-0 px-2 relative -top-3">
           <button
             type="button"
             onClick={() => {
@@ -57,16 +57,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               soundManager.playPop();
             }}
             title="隨機幫我挑一家好吃的"
-            className={`group relative flex flex-col items-center justify-center w-14 h-14 rounded-full text-white cursor-pointer transition-all duration-200 active:scale-90 active:rotate-6 select-none ${
+            className={`flex items-center justify-center w-12 h-12 rounded-full cursor-pointer transition-all duration-200 active:scale-90 active:rotate-12 select-none shadow-md ${
               isChef
-                ? 'bg-gradient-to-tr from-[#E26618] via-[#F3911E] to-[#FFA834] shadow-[0_6px_18px_rgba(243,145,30,0.45)] ring-4 ring-[#FFFBF2]'
-                : 'bg-gradient-to-tr from-japandi-terracotta via-japandi-apricot to-[#FFA07A] shadow-[0_6px_18px_rgba(235,134,103,0.45)] ring-4 ring-white'
+                ? 'bg-[#D85A2A] text-white ring-4 ring-[#FFFBF2] hover:bg-[#C24D20]'
+                : 'bg-japandi-apricot text-white ring-4 ring-white hover:bg-japandi-apricot-dark'
             }`}
           >
-            <Dices className="w-5 h-5 -rotate-6 group-hover:rotate-45 group-active:scale-110 transition-transform duration-300 drop-shadow-sm" />
-            <span className="text-[10px] font-black tracking-tight leading-none mt-0.5 drop-shadow-sm">
-              隨便！
-            </span>
+            <Dices className="w-6 h-6 stroke-[2.2]" />
           </button>
         </div>
 
