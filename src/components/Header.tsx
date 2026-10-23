@@ -99,11 +99,43 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">隨便</span>
           </button>
 
+          {/* Google 試算表雲端同步（隨時可見，方便跨裝置同步與設定） */}
+          <button
+            onClick={() => { onOpenCloudModal(); soundManager.playPop(); }}
+            title={
+              isSyncingCloud 
+                ? '正在自動同步至 Google 試算表...' 
+                : isCloudConnected 
+                  ? 'Google 試算表已連線（點擊查看或同步）' 
+                  : 'Google 試算表雲端設定 / 跨裝置同步'
+            }
+            className={`btn-pebble flex items-center justify-center gap-1 p-2 sm:px-3 sm:py-2 rounded-full border transition-all shadow-soft shrink-0 ${
+              isChef
+                ? isCloudConnected 
+                  ? 'bg-emerald-400/25 text-emerald-300 border-emerald-400/40 backdrop-blur-md'
+                  : 'bg-white/10 hover:bg-white/20 active:bg-white/25 backdrop-blur-md text-[#FFF4E0] border-white/20'
+                : isCloudConnected 
+                  ? 'bg-[#EBF3ED] text-japandi-sage-dark border-[#CDE1D3]'
+                  : 'bg-white/90 text-japandi-text-muted border-[#EDE6DC] hover:bg-japandi-oat backdrop-blur-md'
+            }`}
+          >
+            {isSyncingCloud ? (
+              <RefreshCw className={`w-4 h-4 animate-spin ${isChef ? 'text-amber-300' : 'text-japandi-sage'}`} />
+            ) : isCloudConnected ? (
+              <CloudCheck className={`w-4 h-4 ${isChef ? 'text-emerald-300' : 'text-japandi-sage'}`} />
+            ) : (
+              <Cloud className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline font-bold text-xs sm:text-sm">
+              {isCloudConnected ? '已連線' : '雲端'}
+            </span>
+          </button>
+
           {/* 未解鎖模式：顯示「🔒 管理」按鈕 */}
           {!isAdminUnlocked && onToggleAdminLock && (
             <button
               onClick={() => { onToggleAdminLock(); soundManager.playPop(); }}
-              title="管理模式（新增、編輯、雲端同步、備份）"
+              title="管理模式（新增、編輯、備份）"
               className={`btn-pebble flex items-center justify-center gap-1 sm:gap-1.5 p-2 sm:px-3.5 sm:py-2 rounded-full font-bold text-xs sm:text-sm border transition-all shadow-soft select-none shrink-0 ${
                 isChef
                   ? 'bg-white/10 hover:bg-white/20 active:bg-white/25 text-[#FFF4E0] border-white/20 backdrop-blur-md'
@@ -130,35 +162,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Plus className="w-4 h-4 stroke-[3] shrink-0" />
                 <span className="hidden sm:inline">加店家</span>
-              </button>
-
-              {/* Google 試算表雲端同步 */}
-              <button
-                onClick={() => { onOpenCloudModal(); soundManager.playPop(); }}
-                title={
-                  isSyncingCloud 
-                    ? '正在自動同步至 Google 試算表...' 
-                    : isCloudConnected 
-                      ? 'Google 試算表已連線（新增時自動存檔）' 
-                      : 'Google 試算表雲端設定'
-                }
-                className={`btn-pebble p-2 rounded-full border transition-all shadow-soft shrink-0 ${
-                  isChef
-                    ? isCloudConnected 
-                      ? 'bg-emerald-400/25 text-emerald-300 border-emerald-400/40 backdrop-blur-md'
-                      : 'bg-white/10 hover:bg-white/20 active:bg-white/25 backdrop-blur-md text-[#FFF4E0] border-white/20'
-                    : isCloudConnected 
-                      ? 'bg-[#EBF3ED] text-japandi-sage-dark border-[#CDE1D3]'
-                      : 'bg-white/90 text-japandi-text-muted border-[#EDE6DC] hover:bg-japandi-oat backdrop-blur-md'
-                }`}
-              >
-                {isSyncingCloud ? (
-                  <RefreshCw className={`w-4 h-4 animate-spin ${isChef ? 'text-amber-300' : 'text-japandi-sage'}`} />
-                ) : isCloudConnected ? (
-                  <CloudCheck className={`w-4 h-4 ${isChef ? 'text-emerald-300' : 'text-japandi-sage'}`} />
-                ) : (
-                  <Cloud className="w-4 h-4" />
-                )}
               </button>
 
               {/* 備份管理 */}

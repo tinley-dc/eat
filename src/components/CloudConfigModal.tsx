@@ -251,27 +251,27 @@ export const CloudConfigModal: React.FC<CloudConfigModalProps> = ({
             💡 <b>何時需要點「立即雙向同步」？</b> 平常新增店家只要開啟下方的「背景自動同步」，系統就會<b>自動存進試算表</b>！只有在更換手機/電腦，想立即下載雲端上的最新名單時，才需要點此按鈕。
           </p>
 
-          {scriptUrl.trim() && (
-            <div className="p-4 bg-[#F2F7F4] border border-[#CDE1D3] rounded-2xl space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-japandi-sage-dark shrink-0" />
-                  <span className="font-bold text-sm text-japandi-text">換新手機或家人使用？</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyShareLink}
-                  className="btn-pebble flex items-center gap-1.5 px-3 py-1.5 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-bold text-xs shadow-soft transition-all shrink-0"
-                >
-                  {copiedShareLink ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedShareLink ? '已複製專屬連結！' : '📱 複製手機直達同步連結'}</span>
-                </button>
+          <div className="p-4 bg-[#F2F7F4] border border-[#CDE1D3] rounded-2xl space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-japandi-sage-dark shrink-0" />
+                <span className="font-bold text-sm text-japandi-text">換新手機或家人使用？</span>
               </div>
-              <p className="text-xs text-japandi-text-muted leading-relaxed">
-                複製後用 LINE 或 AirDrop 傳給手機點開，手機就會<b>自動綁定試算表並下載所有店家</b>，完全不用在手機上手動貼網址！
-              </p>
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                className="btn-pebble flex items-center gap-1.5 px-3 py-1.5 bg-japandi-sage hover:bg-japandi-sage-dark text-white rounded-xl font-bold text-xs shadow-soft transition-all shrink-0"
+              >
+                {copiedShareLink ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedShareLink ? '已複製專屬連結！' : '📱 複製手機直達同步連結'}</span>
+              </button>
             </div>
-          )}
+            <p className="text-xs text-japandi-text-muted leading-relaxed">
+              {scriptUrl.trim() 
+                ? '點擊複製後，用 LINE 或 AirDrop 傳給手機點開，手機就會自動綁定並下載所有店家，免手動貼網址！' 
+                : '💡 先在上方貼上 Google 試算表網址後，點此按鈕即可產生專屬連結，用 LINE 傳給新手機一鍵完成同步！'}
+            </p>
+          </div>
 
           {testResult && (
             <div className={`p-3.5 rounded-xl border flex items-start gap-2.5 text-sm font-bold ${
