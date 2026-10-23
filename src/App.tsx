@@ -10,7 +10,7 @@ import {
   syncWithCloud
 } from './db';
 import { getCloudConfig, saveCloudConfig } from './services/cloudSync';
-import { loadCategories, saveCategories } from './utils/categoryStorage';
+import { loadCategories, saveCategories, syncCategoriesWithRestaurants } from './utils/categoryStorage';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
 import { RestaurantCard } from './components/RestaurantCard';
@@ -164,6 +164,7 @@ export const App: React.FC = () => {
       // 2. 初始化資料庫（若本地無資料且已設定試算表，initializeDatabase 會直接從雲端拉取）
       const data = await initializeDatabase();
       setRestaurants(data);
+      setCategories((prev) => syncCategoriesWithRestaurants(prev, data));
 
       // 3. 若已設定試算表，於背景執行一次同步（若新裝置先前殘留示範店家，會自動以雲端資料完整覆蓋）
       const config = getCloudConfig();
@@ -172,6 +173,7 @@ export const App: React.FC = () => {
           .then(async (res) => {
             const updated = await getAllRestaurants();
             setRestaurants(updated);
+            setCategories((prev) => syncCategoriesWithRestaurants(prev, updated));
             if (res.count > 0) {
               setSyncToastMessage(`☁️ 已同步 ${res.count} 間店家資料！`);
               setTimeout(() => setSyncToastMessage(null), 3200);
@@ -185,6 +187,7 @@ export const App: React.FC = () => {
       console.error('初始化失敗:', e);
       const list = await getAllRestaurants();
       setRestaurants(list);
+      setCategories((prev) => syncCategoriesWithRestaurants(prev, list));
     } finally {
       setIsLoading(false);
     }

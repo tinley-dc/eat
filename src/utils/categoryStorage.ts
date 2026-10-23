@@ -1,6 +1,6 @@
-import { CategoryItem, PRESET_CATEGORIES } from '../types';
+import { CategoryItem, PRESET_CATEGORIES, Restaurant } from '../types';
 
-export const CATEGORIES_STORAGE_KEY = 'wanna_eat_custom_categories_v1';
+export const CATEGORIES_STORAGE_KEY = 'wanna_eat_custom_categories_v2';
 
 /**
  * 載入自訂排序與自訂命名的分類清單
@@ -54,3 +54,53 @@ export function resetCategoriesToDefault(): CategoryItem[] {
   }
   return [...PRESET_CATEGORIES];
 }
+
+/**
+ * 自動將店家身上有出現的分類標籤，補齊至分類清單中，避免遺漏
+ */
+export function syncCategoriesWithRestaurants(
+  currentCategories: CategoryItem[],
+  restaurants: Restaurant[]
+): CategoryItem[] {
+  const existingNames = new Set(currentCategories.map(c => c.name.trim()));
+  const newItems: CategoryItem[] = [];
+
+  const emojiMap: Record<string, string> = {
+    '複合': '🍱',
+    '飯食': '🍚',
+    '麵食': '🍜',
+    '速食': '🍔',
+    '火鍋': '🍲',
+    '排餐': '🥩',
+    '水餃': '🥟',
+    '早午餐': '🥪',
+    '早晚餐': '🥪',
+    '甜點': '🍰',
+    '飲料': '🧋',
+    '其它': '🍽️',
+    '其他': '🍽️',
+    '其他美味': '🍽️',
+  };
+
+  for (const r of restaurants) {
+    for (const cat of r.categories || []) {
+      const name = cat.trim();
+      if (name && !existingNames.has(name) && name !== '全部') {
+        existingNames.add(name);
+        newItems.push({
+          id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name,
+          icon: emojiMap[name] || '🍽️'
+        });
+      }
+    }
+  }
+
+  if (newItems.length > 0) {
+    const merged = [...currentCategories, ...newItems];
+    saveCategories(merged);
+    return merged;
+  }
+  return currentCategories;
+}
+
