@@ -99,10 +99,6 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   const dislikeDishes = restaurant.dishes.filter(d => d.opinion === 'dislike');
   const neutralDishes = restaurant.dishes.filter(d => d.opinion === 'neutral');
 
-  // Google Maps 外部跳轉連結（優先使用儲存的分享連結，若無則以店名與地址搜尋）
-  const googleMapsOpenUrl = restaurant.googleMapsUrl || 
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((restaurant.address ? restaurant.address + ' ' : '') + restaurant.name)}`;
-
   const nextImage = () => {
     setActiveImageIndex((prev) => (prev + 1) % carouselItems.length);
     soundManager.playPop();
@@ -419,22 +415,13 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
             <div className={`rounded-2xl overflow-hidden border bg-white shadow-soft animate-scaleUp ${
               isChef ? 'border-[#EADAC5]' : 'border-[#DFD6CA]'
             }`}>
-              <div className={`px-4 py-2.5 border-b flex items-center justify-between text-xs sm:text-sm font-bold ${
+              <div className={`px-4 py-2.5 border-b flex items-center text-xs sm:text-sm font-bold ${
                 isChef ? 'bg-[#FFF8EE] border-[#F5E6D3] text-[#7A543E]' : 'bg-[#F7F3EE] border-[#EDE6DC] text-japandi-text-muted'
               }`}>
                 <span className={`flex items-center gap-1.5 ${isChef ? 'text-[#4A2613] font-black' : 'text-japandi-text'}`}>
                   <MapPin className={`w-4 h-4 ${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage'}`} />
                   <span>{restaurant.address || restaurant.name} 周邊街區</span>
                 </span>
-                <a
-                  href={googleMapsOpenUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${isChef ? 'text-[#D85A2A]' : 'text-japandi-sage-dark'} hover:underline flex items-center gap-1 font-bold`}
-                >
-                  <span>Google 地圖開啟</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
               </div>
               <div className="w-full h-60 sm:h-72 bg-[#EAE5DF] relative">
                 <iframe
