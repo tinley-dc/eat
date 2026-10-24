@@ -478,15 +478,6 @@ export const App: React.FC = () => {
             >
               <Pin className="w-4 h-4" />
               <span>待踩點</span>
-              {wishlistRestaurants.length > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-xs font-black ${
-                  viewMode === 'wishlist'
-                    ? 'bg-white text-[#D85A2A]'
-                    : (isChef ? 'bg-[#F3A935] text-[#4A2613]' : 'bg-japandi-apricot text-white')
-                }`}>
-                  {wishlistRestaurants.length}
-                </span>
-              )}
             </button>
           </div>
         </div>

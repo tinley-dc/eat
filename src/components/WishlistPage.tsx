@@ -3,12 +3,7 @@ import { Restaurant, DEFAULT_RESTAURANT_IMAGE } from '../types';
 import { 
   Pin, 
   Plus, 
-  MapPin, 
   Clock, 
-  Phone, 
-  Globe, 
-  Edit3, 
-  Trash2, 
   ArrowLeft,
   Search,
   Lock
@@ -32,11 +27,8 @@ interface WishlistPageProps {
 
 export const WishlistPage: React.FC<WishlistPageProps> = ({
   restaurants,
-  onMoveToVisited,
   onOpenAddModal,
   onViewDetail,
-  onEdit,
-  onDelete,
   onBackToMenu,
   isAdminUnlocked = false,
   onRequireAdminUnlock,
@@ -98,7 +90,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                 isChef ? 'bg-[#F3A935] text-[#4A2613]' : 'bg-japandi-apricot text-white'
               }`}>
                 <Pin className="w-3 h-3 fill-current" />
-                <span>口袋名單（{restaurants.length} 間）</span>
+                <span>口袋名單</span>
               </span>
             </div>
 
@@ -267,8 +259,8 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
           </button>
         </div>
       ) : (
-        /* 卡片列表 (單欄/雙欄響應式) */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        /* 極簡美食卡片網格（與美味佳餚一致，附加營業時間，照片無文字標籤） */
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-4.5">
           {filteredList.map((restaurant) => {
             const storePhotos = restaurant.images || [];
             const coverUrl = (storePhotos.length > 0 && restaurant.coverIndex !== undefined && storePhotos[restaurant.coverIndex])
@@ -278,193 +270,49 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             return (
               <div
                 key={restaurant.id}
-                className={`group rounded-3xl border transition-all duration-200 overflow-hidden shadow-soft hover:shadow-float flex flex-col justify-between ${
+                onClick={() => {
+                  onViewDetail(restaurant);
+                  soundManager.playPop();
+                }}
+                className={`group cursor-pointer flex flex-col transition-all duration-200 select-none ${
                   isChef
-                    ? 'bg-white hover:bg-[#FFFDF9] border-[#EFE5D8]'
-                    : 'bg-white hover:bg-[#FAF8F5] border-[#EBE3D7]'
-                }`}
+                    ? 'bg-white hover:bg-[#FFFDF9] border border-[#F0E6D8] hover:border-[#E5DACB]'
+                    : 'bg-white hover:bg-[#FAF8F5] border border-[#EBE3D7] hover:border-[#DCD2C3]'
+                } rounded-[24px] sm:rounded-[28px] p-2.5 sm:p-3 shadow-soft hover:shadow-float hover:-translate-y-1`}
               >
-                {/* 卡片上半部 (點擊開啟詳細視窗) */}
-                <div 
-                  onClick={() => { onViewDetail(restaurant); soundManager.playPop(); }}
-                  className="p-4 sm:p-5 cursor-pointer space-y-3.5"
-                >
-                  <div className="flex items-start gap-3.5">
-                    {/* 左側照片 */}
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shrink-0 relative bg-[#F7F3EE] shadow-2xs">
-                      <SafeImage
-                        src={coverUrl}
-                        alt={restaurant.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-                        loading="lazy"
-                      />
-                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-xs">
-                        待踩點
-                      </span>
-                    </div>
-
-                    {/* 右側標題與分類 */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className={`font-black text-base sm:text-lg leading-snug truncate transition-colors ${
-                          isChef ? 'text-[#4A2613] group-hover:text-[#D85A2A]' : 'text-stone-800 group-hover:text-japandi-sage-dark'
-                        }`}>
-                          {restaurant.name}
-                        </h3>
-
-                        {/* 管理模式快速操作 */}
-                        {isAdminUnlocked && (
-                          <div 
-                            className="flex items-center gap-1 shrink-0" 
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => { onEdit(restaurant); soundManager.playPop(); }}
-                              title="編輯"
-                              className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { onDelete(restaurant.id, restaurant.name); soundManager.playPop(); }}
-                              title="刪除"
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 分類標籤 */}
-                      {restaurant.categories && restaurant.categories.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1">
-                          {restaurant.categories.map(cat => (
-                            <span
-                              key={cat}
-                              className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                                isChef
-                                  ? 'bg-[#FFF4E8] text-[#B84E12] border border-[#FCD8BE]/60'
-                                  : 'bg-[#FAF7F2] text-stone-600 border border-[#EDE6DC]'
-                              }`}
-                            >
-                              {cat}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* 營業時間 */}
-                      {restaurant.businessHours && (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 pt-0.5 truncate">
-                          <Clock className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                          <span className="truncate">{formatBusinessHours(restaurant.businessHours)}</span>
-                        </div>
-                      )}
-
-                      {/* 地址 */}
-                      {restaurant.address && (
-                        <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium truncate">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 text-stone-400" />
-                          <span className="truncate">{restaurant.address}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 想踩點原因 / 店家備註 */}
-                  {restaurant.note && (
-                    <div className={`p-2.5 rounded-xl text-xs sm:text-sm font-medium border leading-relaxed ${
-                      isChef
-                        ? 'bg-[#FFF9EE] border-[#F2E4D2] text-[#6D4930]'
-                        : 'bg-[#FAF7F2] border-[#ECE3D8] text-stone-700'
-                    }`}>
-                      <span className="font-bold text-amber-600 mr-1.5">💡 想吃原因：</span>
-                      <span>{restaurant.note}</span>
-                    </div>
-                  )}
+                {/* 照片容器（正方形裁切，乾淨無任何文字標籤） */}
+                <div className="relative aspect-square w-full rounded-[18px] sm:rounded-[22px] overflow-hidden bg-white shadow-2xs">
+                  <SafeImage
+                    src={coverUrl}
+                    alt={restaurant.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                    loading="lazy"
+                  />
                 </div>
 
-                {/* 卡片下半部：操作列 */}
-                <div className={`px-4 py-3 border-t flex flex-wrap items-center justify-between gap-2.5 ${
-                  isChef ? 'bg-[#FFFDF9] border-[#F1E7DA]' : 'bg-[#FAF8F5] border-[#EFE9DF]'
-                }`}>
-                  {/* 外連捷徑 (Maps、電話、官網) */}
-                  <div className="flex items-center gap-2">
-                    {restaurant.googleMapsUrl && (
-                      <a
-                        href={restaurant.googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => { e.stopPropagation(); soundManager.playPop(); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-stone-600 hover:text-stone-900 border border-stone-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
-                        title="開啟 Google 地圖導航"
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>地圖</span>
-                      </a>
-                    )}
-                    {restaurant.phone && (
-                      <a
-                        href={`tel:${restaurant.phone}`}
-                        onClick={(e) => { e.stopPropagation(); soundManager.playPop(); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-stone-600 hover:text-stone-900 border border-stone-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
-                        title="撥打電話"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-blue-600" />
-                        <span>電話</span>
-                      </a>
-                    )}
-                    {restaurant.websiteUrl && (
-                      <a
-                        href={restaurant.websiteUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => { e.stopPropagation(); soundManager.playPop(); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white text-stone-600 hover:text-stone-900 border border-stone-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
-                        title="開啟官網 / 粉絲頁"
-                      >
-                        <Globe className="w-3.5 h-3.5 text-purple-600" />
-                        <span>官網</span>
-                      </a>
-                    )}
-                  </div>
+                {/* 照片下方：店家名稱 ＋ 營業時間 */}
+                <div className="pt-2 sm:pt-2.5 px-1 pb-0.5 text-center space-y-1">
+                  <h4 className={`text-sm sm:text-base font-bold truncate leading-tight transition-colors text-center ${
+                    isChef
+                      ? 'text-[#694228] group-hover:text-[#D85A2A]'
+                      : 'text-stone-700 group-hover:text-japandi-sage-dark'
+                  }`}>
+                    {restaurant.name}
+                  </h4>
 
-                  {/* 核心英雄操作：🚩 踩點成功！移至美食名單（需解鎖管理模式） */}
-                  {isAdminUnlocked ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onMoveToVisited(restaurant);
-                      }}
-                      className={`btn-pebble inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer active:scale-95 ${
-                        isChef
-                          ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
-                          : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
-                      }`}
-                      title="踩點吃過覺得很讚，移至美食名單！"
-                    >
-                      <span>🚩 踩點成功！移至美食</span>
-                    </button>
+                  {/* 營業時間 */}
+                  {restaurant.businessHours ? (
+                    <div className={`flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold truncate ${
+                      isChef ? 'text-[#B84E12]' : 'text-amber-700'
+                    }`}>
+                      <Clock className={`w-3 h-3 shrink-0 ${isChef ? 'text-[#D85A2A]' : 'text-amber-600'}`} />
+                      <span className="truncate">{formatBusinessHours(restaurant.businessHours)}</span>
+                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onRequireAdminUnlock?.();
-                        soundManager.playPop();
-                      }}
-                      className={`btn-pebble inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all cursor-pointer active:scale-95 ${
-                        isChef
-                          ? 'bg-white/80 hover:bg-white text-[#8A5A38] border-[#EADFCF]'
-                          : 'bg-white hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#E6DDD2]'
-                      }`}
-                      title="需先解鎖管理密碼才能將店家移至美食名單"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-japandi-apricot shrink-0" />
-                      <span>踩點升級（需解鎖）</span>
-                    </button>
+                    <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-stone-400 font-medium truncate">
+                      <Clock className="w-3 h-3 shrink-0 text-stone-300" />
+                      <span className="truncate">尚未設定時間</span>
+                    </div>
                   )}
                 </div>
               </div>

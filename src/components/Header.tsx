@@ -41,7 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
   hasSearchQuery = false,
   viewMode,
   onToggleWishlist,
-  wishlistCount,
 }) => {
   const { theme } = useTheme();
   const isChef = theme === 'chef_menu';
@@ -127,15 +126,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Pin className="w-4 h-4 shrink-0" />
               <span className="hidden xs:inline sm:inline">待踩點</span>
-              {typeof wishlistCount === 'number' && wishlistCount > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black leading-tight ${
-                  viewMode === 'wishlist'
-                    ? 'bg-white text-[#D85A2A]'
-                    : (isChef ? 'bg-[#F3A935] text-[#4A2613]' : 'bg-japandi-apricot text-white')
-                }`}>
-                  {wishlistCount}
-                </span>
-              )}
             </button>
           )}
 
