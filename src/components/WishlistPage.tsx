@@ -10,7 +10,8 @@ import {
   Edit3, 
   Trash2, 
   ArrowLeft,
-  Search
+  Search,
+  Lock
 } from 'lucide-react';
 import { formatBusinessHours } from '../utils/googleMapsParser';
 import { soundManager } from '../utils/sound';
@@ -26,6 +27,7 @@ interface WishlistPageProps {
   onDelete: (id: string, name: string) => void;
   onBackToMenu: () => void;
   isAdminUnlocked?: boolean;
+  onRequireAdminUnlock?: () => void;
 }
 
 export const WishlistPage: React.FC<WishlistPageProps> = ({
@@ -37,6 +39,7 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   onDelete,
   onBackToMenu,
   isAdminUnlocked = false,
+  onRequireAdminUnlock,
 }) => {
   const { theme } = useTheme();
   const isChef = theme === 'chef_menu';
@@ -111,20 +114,36 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
             </p>
           </div>
 
-          {/* 新增想踩點店家按鈕 */}
+          {/* 新增想踩點店家按鈕（需管理解鎖） */}
           <div className="shrink-0 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => { onOpenAddModal(); soundManager.playPop(); }}
-              className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl font-black text-sm text-white shadow-soft transition-all cursor-pointer ${
-                isChef
-                  ? 'bg-[#E86A43] hover:bg-[#D55730] active:scale-95'
-                  : 'bg-japandi-apricot hover:bg-japandi-apricot-dark active:scale-95'
-              }`}
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>新增想踩點店家</span>
-            </button>
+            {isAdminUnlocked ? (
+              <button
+                type="button"
+                onClick={() => { onOpenAddModal(); soundManager.playPop(); }}
+                className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl font-black text-sm text-white shadow-soft transition-all cursor-pointer ${
+                  isChef
+                    ? 'bg-[#E86A43] hover:bg-[#D55730] active:scale-95'
+                    : 'bg-japandi-apricot hover:bg-japandi-apricot-dark active:scale-95'
+                }`}
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>新增想踩點店家</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { onRequireAdminUnlock?.(); soundManager.playPop(); }}
+                className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-black text-xs sm:text-sm border transition-all cursor-pointer shadow-soft active:scale-95 ${
+                  isChef
+                    ? 'bg-white/80 hover:bg-white text-[#7A543E] border-[#E5DACB]'
+                    : 'bg-white/90 hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#EDE6DC]'
+                }`}
+                title="需先解鎖管理密碼才能新增店家"
+              >
+                <Lock className="w-4 h-4 text-japandi-apricot shrink-0" />
+                <span>解鎖新增店家</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -208,16 +227,31 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
           <p className="text-xs sm:text-sm text-japandi-text-muted max-w-sm mx-auto leading-relaxed">
             滑手機看到想吃、朋友推薦的美味餐廳，或想帶小孩去探險的親子名單，隨手記下來，假日就不怕沒靈感囉！
           </p>
-          <button
-            type="button"
-            onClick={() => { onOpenAddModal(); soundManager.playPop(); }}
-            className={`btn-pebble inline-flex items-center gap-1.5 px-5 py-2.5 font-black text-sm rounded-2xl shadow-soft mt-2 text-white ${
-              isChef ? 'bg-[#E86A43] hover:bg-[#D55730]' : 'bg-japandi-apricot hover:bg-japandi-apricot-dark'
-            }`}
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>新增第一家想踩點店家</span>
-          </button>
+          {isAdminUnlocked ? (
+            <button
+              type="button"
+              onClick={() => { onOpenAddModal(); soundManager.playPop(); }}
+              className={`btn-pebble inline-flex items-center gap-1.5 px-5 py-2.5 font-black text-sm rounded-2xl shadow-soft mt-2 text-white ${
+                isChef ? 'bg-[#E86A43] hover:bg-[#D55730]' : 'bg-japandi-apricot hover:bg-japandi-apricot-dark'
+              }`}
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>新增第一家想踩點店家</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { onRequireAdminUnlock?.(); soundManager.playPop(); }}
+              className={`btn-pebble inline-flex items-center gap-1.5 px-5 py-2.5 font-bold text-xs sm:text-sm rounded-2xl shadow-soft mt-2 border transition-all cursor-pointer ${
+                isChef
+                  ? 'bg-white text-[#7A543E] border-[#E5DACB] hover:bg-[#FFF9EE]'
+                  : 'bg-white text-japandi-text-muted hover:text-japandi-text border-[#EDE6DC]'
+              }`}
+            >
+              <Lock className="w-4 h-4 text-japandi-apricot stroke-[2.5]" />
+              <span>解鎖管理以新增店家</span>
+            </button>
+          )}
         </div>
       ) : filteredList.length === 0 ? (
         /* 搜尋無結果 */
@@ -398,21 +432,40 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                     )}
                   </div>
 
-                  {/* 核心英雄操作：🚩 踩點成功！移至美食名單 */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMoveToVisited(restaurant);
-                    }}
-                    className={`btn-pebble inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer active:scale-95 ${
-                      isChef
-                        ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
-                        : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
-                    }`}
-                    title="踩點吃過覺得很讚，移至美食名單！"
-                  >
-                    <span>🚩 踩點成功！移至美食</span>
-                  </button>
+                  {/* 核心英雄操作：🚩 踩點成功！移至美食名單（需解鎖管理模式） */}
+                  {isAdminUnlocked ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onMoveToVisited(restaurant);
+                      }}
+                      className={`btn-pebble inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer active:scale-95 ${
+                        isChef
+                          ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
+                          : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
+                      }`}
+                      title="踩點吃過覺得很讚，移至美食名單！"
+                    >
+                      <span>🚩 踩點成功！移至美食</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRequireAdminUnlock?.();
+                        soundManager.playPop();
+                      }}
+                      className={`btn-pebble inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all cursor-pointer active:scale-95 ${
+                        isChef
+                          ? 'bg-white/80 hover:bg-white text-[#8A5A38] border-[#EADFCF]'
+                          : 'bg-white hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#E6DDD2]'
+                      }`}
+                      title="需先解鎖管理密碼才能將店家移至美食名單"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-japandi-apricot shrink-0" />
+                      <span>踩點升級（需解鎖）</span>
+                    </button>
+                  )}
                 </div>
               </div>
             );

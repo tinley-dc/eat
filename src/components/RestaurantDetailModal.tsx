@@ -14,7 +14,8 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react';
 import { soundManager } from '../utils/sound';
 import { formatBusinessHours } from '../utils/googleMapsParser';
@@ -28,6 +29,7 @@ interface RestaurantDetailModalProps {
   onDelete: (id: string, name: string) => void;
   onMoveToVisited?: (restaurant: Restaurant) => void;
   isAdminUnlocked?: boolean;
+  onRequireAdminUnlock?: () => void;
 }
 
 export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
@@ -37,6 +39,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   onDelete,
   onMoveToVisited,
   isAdminUnlocked = false,
+  onRequireAdminUnlock,
 }) => {
   // 彙整「店家整體照片」與「吃過什麼餐點照片」
   const carouselItems: {
@@ -362,25 +365,46 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                     這是「待踩點」口袋店家（小孩尚未去過）
                   </h4>
                   <p className="text-xs text-amber-800/80 mt-0.5 leading-relaxed">
-                    小孩吃過這家餐廳且覺得很讚嗎？點擊按鈕即可立即升級移至「美味佳餚」與「餐廳資訊」！
+                    小孩吃過這家餐廳且覺得很讚嗎？{isAdminUnlocked ? '點擊按鈕即可立即升級移至「美味佳餚」與「餐廳資訊」！' : '解鎖管理模式後即可將店家升級移至美食名單。'}
                   </p>
                 </div>
               </div>
-              {onMoveToVisited && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onMoveToVisited(restaurant);
-                    onClose();
-                  }}
-                  className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer shrink-0 active:scale-95 ${
-                    isChef
-                      ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
-                      : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
-                  }`}
-                >
-                  <span>🚩 踩點成功！移至美食名單</span>
-                </button>
+              {isAdminUnlocked ? (
+                onMoveToVisited && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onMoveToVisited(restaurant);
+                      onClose();
+                    }}
+                    className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer shrink-0 active:scale-95 ${
+                      isChef
+                        ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
+                        : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
+                    }`}
+                  >
+                    <span>🚩 踩點成功！移至美食名單</span>
+                  </button>
+                )
+              ) : (
+                onRequireAdminUnlock && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRequireAdminUnlock();
+                      soundManager.playPop();
+                    }}
+                    className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs sm:text-sm border transition-all cursor-pointer shrink-0 active:scale-95 ${
+                      isChef
+                        ? 'bg-white hover:bg-[#FFF9EE] text-[#7A543E] border-[#E5DACB]'
+                        : 'bg-white hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#EDE6DC]'
+                    }`}
+                    title="需先解鎖管理密碼才能將店家移至美食名單"
+                  >
+                    <Lock className="w-4 h-4 text-japandi-apricot shrink-0" />
+                    <span>解鎖升級至美食</span>
+                  </button>
+                )
               )}
             </div>
           )}

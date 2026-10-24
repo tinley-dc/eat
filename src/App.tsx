@@ -289,6 +289,10 @@ export const App: React.FC = () => {
 
   // 踩點成功！將店家由「待踩點」移入「美味佳餚與餐廳資訊」
   const handleMoveToVisited = async (restaurant: Restaurant) => {
+    if (!isAdminUnlocked) {
+      setIsAdminLockModalOpen(true);
+      return;
+    }
     try {
       const updated: Restaurant = {
         ...restaurant,
@@ -317,6 +321,10 @@ export const App: React.FC = () => {
 
   // 新增 / 編輯店家
   const handleSaveRestaurant = async (data: Restaurant) => {
+    if (!isAdminUnlocked) {
+      setIsAdminLockModalOpen(true);
+      return;
+    }
     const existing = editingRestaurant || (await db.restaurants.get(data.id));
     if (existing) {
       await updateRestaurant(data);
@@ -334,6 +342,10 @@ export const App: React.FC = () => {
 
   // 刪除店家
   const handleDeleteRestaurant = async (id: string, name: string) => {
+    if (!isAdminUnlocked) {
+      setIsAdminLockModalOpen(true);
+      return;
+    }
     if (window.confirm(`確定要刪除「${name}」嗎？`)) {
       await deleteRestaurant(id);
       const updated = await getAllRestaurants();
@@ -493,6 +505,7 @@ export const App: React.FC = () => {
             onDelete={handleDeleteRestaurant}
             onBackToMenu={() => handleToggleViewMode('menu')}
             isAdminUnlocked={isAdminUnlocked}
+            onRequireAdminUnlock={() => setIsAdminLockModalOpen(true)}
           />
         ) : (
           <>
@@ -703,6 +716,7 @@ export const App: React.FC = () => {
         onDelete={handleDeleteRestaurant}
         onMoveToVisited={handleMoveToVisited}
         isAdminUnlocked={isAdminUnlocked}
+        onRequireAdminUnlock={() => setIsAdminLockModalOpen(true)}
       />
 
       {/* 新增 / 編輯店家彈窗 */}
