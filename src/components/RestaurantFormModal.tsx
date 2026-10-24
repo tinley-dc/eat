@@ -497,14 +497,14 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/45 backdrop-blur-sm animate-fadeIn">
       <div 
-        className={`rounded-[36px] max-w-2xl w-full max-h-[92vh] overflow-y-auto no-scrollbar shadow-float border-2 flex flex-col relative animate-scaleUp ${
+        className={`rounded-[32px] sm:rounded-[36px] max-w-2xl w-full max-h-[92vh] overflow-hidden shadow-float border-2 flex flex-col relative animate-scaleUp ${
           isChef ? 'bg-[#FFFDF9] border-[#EFE5D8]' : 'bg-[#FAF7F2] border-[#E5DDD2]'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 頂部標題 */}
-        <div className={`sticky top-0 z-20 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b ${
-          isChef ? 'bg-[#FFFDF9]/95 border-[#F0E6D8]' : 'bg-white/95 border-[#EDE6DC]'
+        <div className={`px-5 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between border-b shrink-0 ${
+          isChef ? 'bg-[#FFFDF9] border-[#F0E6D8]' : 'bg-white border-[#EDE6DC]'
         }`}>
           <h2 className={`text-xl sm:text-2xl font-black flex items-center gap-2 ${
             isChef ? 'text-[#4A2613]' : 'text-japandi-text'
@@ -522,9 +522,11 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
           </button>
         </div>
 
-        {/* 表單內容 */}
-        <form onSubmit={handleSubmit} className="p-6 sm:p-7 space-y-6">
-          {/* ✨ 智慧貼上 / Google Maps 快速匯入 */}
+        {/* 表單容器 (包含可獨立捲動內容與固定底部儲存列) */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* 可捲動表單內容 */}
+          <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 no-scrollbar">
+            {/* ✨ 智慧貼上 / Google Maps 快速匯入 */}
           <div className={`rounded-2xl p-4 transition-all border-2 ${
             isChef ? 'bg-[#FFF8EE] border-[#F2E4D2]' : 'bg-[#F6F2EC] border-[#E3D9CC]'
           }`}>
@@ -1310,9 +1312,11 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
             </div>
           </div>
 
-          {/* 底部按鈕 */}
-          <div className={`pt-4 border-t flex items-center justify-end gap-3 ${
-            isChef ? 'border-[#F0E6D8]' : 'border-[#EDE6DC]'
+          </div>
+
+          {/* 固定底部操作按鈕列 (免捲動即可隨時儲存) */}
+          <div className={`px-5 sm:px-6 py-3 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-end gap-3 border-t shadow-[0_-4px_16px_rgba(0,0,0,0.04)] shrink-0 ${
+            isChef ? 'bg-[#FFFDF9] border-[#F0E6D8]' : 'bg-white border-[#EDE6DC]'
           }`}>
             <button
               type="button"
