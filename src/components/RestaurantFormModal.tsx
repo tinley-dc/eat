@@ -44,6 +44,7 @@ const readFileAsDataURL = (file: File): Promise<string> => {
 
 interface RestaurantFormModalProps {
   initialData?: Restaurant | null;
+  defaultIsWishlist?: boolean;
   isOpen: boolean;
   onClose: () => void;
   onSave: (restaurant: Restaurant) => Promise<void>;
@@ -53,6 +54,7 @@ interface RestaurantFormModalProps {
 
 export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
   initialData,
+  defaultIsWishlist = false,
   isOpen,
   onClose,
   onSave,
@@ -62,6 +64,7 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
   const { theme } = useTheme();
   const isChef = theme === 'chef_menu';
 
+  const [isWishlist, setIsWishlist] = useState<boolean>(initialData?.isWishlist ?? defaultIsWishlist);
   const [name, setName] = useState(initialData?.name || '');
   const [categories, setCategories] = useState<string[]>(initialData?.categories || []);
   const [customCategory, setCustomCategory] = useState('');
@@ -473,6 +476,7 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
         bookingUrl: bookingUrl.trim() || undefined,
         googleMapsUrl: googleMapsUrl.trim() || undefined,
         phone: phone.trim() || undefined,
+        isWishlist: isWishlist,
         note: note.trim() || undefined,
         dishes: validDishes,
         featuredDishId: finalFeaturedDishId,
@@ -625,6 +629,50 @@ export const RestaurantFormModal: React.FC<RestaurantFormModalProps> = ({
                 )}
               </div>
             )}
+          </div>
+
+          {/* 📌 待踩點口袋名單開關 */}
+          <div className={`p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 ${
+            isWishlist
+              ? (isChef ? 'bg-[#FFF7E8] border-[#F5B853] shadow-xs' : 'bg-[#FFF9F0] border-amber-300 shadow-soft')
+              : (isChef ? 'bg-white/60 border-[#EDE2D2]' : 'bg-white border-[#E8DFD3]')
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0 ${
+                isWishlist ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-400'
+              }`}>
+                📌
+              </div>
+              <div>
+                <div className="font-black text-sm sm:text-base flex items-center gap-2">
+                  <span className={isWishlist ? (isChef ? 'text-[#8A4A1C]' : 'text-amber-900') : (isChef ? 'text-[#4A2613]' : 'text-stone-700')}>
+                    設為「待踩點」口袋名單
+                  </span>
+                  {isWishlist && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full font-black bg-amber-400 text-amber-950">
+                      小孩尚未去過
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                  {isWishlist
+                    ? '此店家會獨立存放在「待踩點」專頁，不需先填餐點。未來踩點吃過後可一鍵移至美食名單！'
+                    : '若小孩尚未去過，開啟此開關可先加入待踩點名單，不與已去過的美食佳餚混在一起。'}
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={isWishlist}
+                onChange={(e) => {
+                  setIsWishlist(e.target.checked);
+                  soundManager.playPop();
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
           </div>
 
           {/* 店家名稱 */}

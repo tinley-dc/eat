@@ -23,6 +23,7 @@ export interface Restaurant {
   bookingUrl?: string;       // 線上訂位網址 (選填，例: inline.app, OpenTable)
   googleMapsUrl?: string;    // Google Maps 連結 (選填，即時查看營業時間與評價)
   phone?: string;            // 聯絡電話 (選填，亦可記在店家備註中)
+  isWishlist?: boolean;      // 是否為待踩點口袋名單（小孩尚未去過）
   updatedAt: number;         // 更新時間戳
   syncStatus?: 'synced' | 'pending' | 'local_only';
 }

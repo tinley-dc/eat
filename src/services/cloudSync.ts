@@ -116,7 +116,7 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
         }
       }
 
-      // 提取並儲存雲端同步的店家中繼資料 (營業時間、電話、官網、訂位、地圖)
+      // 提取並儲存雲端同步的店家中繼資料 (營業時間、電話、官網、訂位、地圖、待踩點)
       const metaItem = result.data.find((item: { id?: string; note?: string }) => item.id === '__CONFIG_RESTAURANTS_META__');
       let metaMap: Record<string, {
         businessHours?: string;
@@ -124,6 +124,7 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
         websiteUrl?: string;
         bookingUrl?: string;
         googleMapsUrl?: string;
+        isWishlist?: boolean;
       }> = {};
       if (metaItem && metaItem.note) {
         try {
@@ -153,6 +154,9 @@ export async function pullFromGoogleSheets(scriptUrl: string): Promise<Restauran
           const known = getKnownRestaurantMeta(r.id, r.name);
           return {
             ...r,
+            isWishlist: typeof r.isWishlist === 'boolean'
+              ? r.isWishlist
+              : (meta.isWishlist !== undefined ? meta.isWishlist : (embeddedMeta.l === 1 ? true : false)),
             note: note || undefined,
             businessHours: r.businessHours || meta.businessHours || embeddedMeta.b || known?.businessHours,
             phone: r.phone || meta.phone || embeddedMeta.p || known?.phone,
@@ -299,13 +303,14 @@ export async function uploadPendingPhotos(
 export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaurant[]): Promise<boolean> {
   if (!scriptUrl.trim()) return false;
 
-  // 收集所有店家的完整中繼擴充資料 (營業時間、電話、官網、訂位、地圖)
+  // 收集所有店家的完整中繼擴充資料 (營業時間、電話、官網、訂位、地圖、待踩點)
   const metaMap: Record<string, {
     businessHours?: string;
     phone?: string;
     websiteUrl?: string;
     bookingUrl?: string;
     googleMapsUrl?: string;
+    isWishlist?: boolean;
   }> = {};
 
   const sanitizedRestaurants = restaurants.map(r => {
@@ -315,34 +320,38 @@ export async function pushToGoogleSheets(scriptUrl: string, restaurants: Restaur
     const resolvedWeb = r.websiteUrl || known?.websiteUrl;
     const resolvedBooking = r.bookingUrl || known?.bookingUrl;
     const resolvedMaps = r.googleMapsUrl || known?.googleMapsUrl;
+    const isWishlist = Boolean(r.isWishlist);
 
     if (!r.id.startsWith('__CONFIG_')) {
-      if (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps) {
+      if (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps || isWishlist) {
         metaMap[r.id] = {
           businessHours: resolvedHours,
           phone: resolvedPhone,
           websiteUrl: resolvedWeb,
           bookingUrl: resolvedBooking,
-          googleMapsUrl: resolvedMaps
+          googleMapsUrl: resolvedMaps,
+          isWishlist: isWishlist ? true : undefined
         };
       }
     }
 
     // 雙重備份：在每個店家的 note 結尾附加 [META:{...}]，即使系統設定遺失也能保證該店家資料完整復原
     let combinedNote = (r.note || '').replace(/\s*\[META:\{.*?\}\]/g, '').trim();
-    if (!r.id.startsWith('__CONFIG_') && (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps)) {
+    if (!r.id.startsWith('__CONFIG_') && (resolvedHours || resolvedPhone || resolvedWeb || resolvedBooking || resolvedMaps || isWishlist)) {
       const singleMeta = {
         b: resolvedHours,
         p: resolvedPhone,
         w: resolvedWeb,
         k: resolvedBooking,
-        g: resolvedMaps
+        g: resolvedMaps,
+        l: isWishlist ? 1 : undefined
       };
       combinedNote = combinedNote ? `${combinedNote}\n[META:${JSON.stringify(singleMeta)}]` : `[META:${JSON.stringify(singleMeta)}]`;
     }
 
     return {
       ...r,
+      isWishlist,
       businessHours: resolvedHours,
       phone: resolvedPhone,
       websiteUrl: resolvedWeb,

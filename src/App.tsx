@@ -24,6 +24,8 @@ import { CategoryManagementModal } from './components/CategoryManagementModal';
 import { BackupModal } from './components/BackupModal';
 import { AdminLockModal } from './components/AdminLockModal';
 import { BottomNav } from './components/BottomNav';
+import { WishlistPage } from './components/WishlistPage';
+import confetti from 'canvas-confetti';
 import { 
   DoodleCarrot, 
   DoodleStrawberry, 
@@ -36,7 +38,8 @@ import {
   Plus, 
   CheckCircle2,
   Store,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Pin
 } from 'lucide-react';
 import { soundManager } from './utils/sound';
 import { useTheme } from './context/ThemeContext';
@@ -81,12 +84,13 @@ export const App: React.FC = () => {
   });
   const [isAdminLockModalOpen, setIsAdminLockModalOpen] = useState<boolean>(false);
 
-  // 瀏覽模式：'menu' (餐廳菜單) 或 'store' (店家圖鑑)，預設為餐廳菜單
-  const [viewMode, setViewMode] = useState<'store' | 'menu'>(() => {
-    return (localStorage.getItem('wanna_eat_view_mode') as 'store' | 'menu') || 'menu';
+  // 瀏覽模式：'menu' (餐廳菜單) 或 'store' (店家圖鑑) 或 'wishlist' (待踩點口袋名單)
+  const [viewMode, setViewMode] = useState<'store' | 'menu' | 'wishlist'>(() => {
+    return (localStorage.getItem('wanna_eat_view_mode') as 'store' | 'menu' | 'wishlist') || 'menu';
   });
+  const [formDefaultWishlist, setFormDefaultWishlist] = useState<boolean>(false);
 
-  const handleToggleViewMode = (mode: 'store' | 'menu') => {
+  const handleToggleViewMode = (mode: 'store' | 'menu' | 'wishlist') => {
     setViewMode(mode);
     localStorage.setItem('wanna_eat_view_mode', mode);
   };
@@ -216,22 +220,29 @@ export const App: React.FC = () => {
     loadData();
   }, []);
 
-  // 計算各分類店家數量
+  // 區分「已去過的美食餐廳」與「待踩點口袋名單（小孩尚未去過）」
+  const visitedRestaurants = useMemo(() => {
+    return restaurants.filter(r => !r.id.startsWith('__CONFIG_') && !r.isWishlist);
+  }, [restaurants]);
+
+  const wishlistRestaurants = useMemo(() => {
+    return restaurants.filter(r => !r.id.startsWith('__CONFIG_') && Boolean(r.isWishlist));
+  }, [restaurants]);
+
+  // 計算各分類店家數量（僅計算已踩點美食餐廳）
   const categoryCounts = useMemo(() => {
-    const validRestaurants = restaurants.filter(r => !r.id.startsWith('__CONFIG_'));
-    const counts: Record<string, number> = { '全部': validRestaurants.length };
-    validRestaurants.forEach((r) => {
+    const counts: Record<string, number> = { '全部': visitedRestaurants.length };
+    visitedRestaurants.forEach((r) => {
       r.categories.forEach((cat) => {
         counts[cat] = (counts[cat] || 0) + 1;
       });
     });
     return counts;
-  }, [restaurants]);
+  }, [visitedRestaurants]);
 
-  // 篩選與搜尋
+  // 篩選與搜尋（僅篩選已踩點美食餐廳）
   const filteredRestaurants = useMemo(() => {
-    return restaurants.filter((r) => {
-      if (r.id.startsWith('__CONFIG_')) return false;
+    return visitedRestaurants.filter((r) => {
       const matchCategory =
         selectedCategory === '全部' || r.categories.includes(selectedCategory);
 
@@ -246,7 +257,7 @@ export const App: React.FC = () => {
 
       return matchCategory && (matchName || matchAddress || matchDish);
     });
-  }, [restaurants, selectedCategory, searchQuery]);
+  }, [visitedRestaurants, selectedCategory, searchQuery]);
 
   // 菜單模式下，依類別進行分組與排序（排除「全部」標籤，各店家歸類至對應分類）
   const categorizedMenuGroups = useMemo(() => {
@@ -275,6 +286,34 @@ export const App: React.FC = () => {
 
     return groups;
   }, [categories, filteredRestaurants]);
+
+  // 踩點成功！將店家由「待踩點」移入「美味佳餚與餐廳資訊」
+  const handleMoveToVisited = async (restaurant: Restaurant) => {
+    try {
+      const updated: Restaurant = {
+        ...restaurant,
+        isWishlist: false,
+        updatedAt: Date.now()
+      };
+      await updateRestaurant(updated);
+      const allR = await getAllRestaurants();
+      setRestaurants(allR);
+      if (detailRestaurant && detailRestaurant.id === restaurant.id) {
+        setDetailRestaurant(updated);
+      }
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.65 }
+      });
+      soundManager.playVictory();
+      setSyncToastMessage(`🎉 踩點成功！「${restaurant.name}」已移至美食名單！`);
+      setTimeout(() => setSyncToastMessage(null), 3600);
+      triggerAutoSync();
+    } catch (err) {
+      console.error('移至美食名單失敗:', err);
+    }
+  };
 
   // 新增 / 編輯店家
   const handleSaveRestaurant = async (data: Restaurant) => {
@@ -333,10 +372,15 @@ export const App: React.FC = () => {
 
       {/* 頂部導覽列 */}
       <Header
-        onOpenAddModal={() => { setEditingRestaurant(null); setIsFormOpen(true); }}
+        onOpenAddModal={() => { setEditingRestaurant(null); setFormDefaultWishlist(viewMode === 'wishlist'); setIsFormOpen(true); }}
         onOpenRandomPicker={() => setIsRandomPickerOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
-        onResetToAll={() => setSelectedCategory('全部')}
+        onResetToAll={() => {
+          setSelectedCategory('全部');
+          if (viewMode === 'wishlist') {
+            handleToggleViewMode('menu');
+          }
+        }}
         isAdminUnlocked={isAdminUnlocked}
         onToggleAdminLock={() => {
           if (isAdminUnlocked) {
@@ -357,6 +401,11 @@ export const App: React.FC = () => {
         isSearchOpen={isSearchOpen}
         onToggleSearch={handleToggleSearch}
         hasSearchQuery={Boolean(searchQuery.trim())}
+        viewMode={viewMode}
+        onToggleWishlist={() => {
+          handleToggleViewMode(viewMode === 'wishlist' ? 'menu' : 'wishlist');
+        }}
+        wishlistCount={wishlistRestaurants.length}
       />
 
       {/* 主要內容區 (響應式：手機 1 欄、平板 2 欄、電腦 3 欄，手機底部留有超薄 BottomNav 高度空間) */}
@@ -377,69 +426,7 @@ export const App: React.FC = () => {
           <DoodleCarrot className="w-8 h-8 rotate-25" />
         </div>
 
-        {/* 搜尋與分類導覽列 (置中精緻寬度) */}
-        <div className="max-w-2xl mx-auto w-full space-y-2 sm:space-y-3">
-          {/* 展開式藥丸全圓角搜尋列 (由 Header 搜尋按鈕觸發) */}
-          {isSearchOpen && (
-            <div className="animate-fadeIn flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className={`w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 ${
-                  isChef ? 'text-[#8A5A3C]' : 'text-japandi-text-muted'
-                }`} />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isChef ? "搜尋想吃的招牌美食、漢堡或店家..." : "搜尋想吃的食物或店家..."}
-                  className={`w-full pl-11 pr-14 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base shadow-soft transition-all ${
-                    isChef
-                      ? 'border-2 border-[#E8D2B5] focus:border-[#F3A935] bg-white text-[#4A2613] placeholder-[#9D765A] focus:outline-none'
-                      : 'border border-[#E4DCCE] focus:border-japandi-sage bg-white/90 text-japandi-text placeholder-japandi-text-muted focus:outline-none'
-                  }`}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold rounded-full px-2.5 py-1 ${
-                      isChef 
-                        ? 'bg-[#F5ECE1] text-[#7A543E] hover:text-[#4A2613]' 
-                        : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
-                    }`}
-                  >
-                    清除
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  setIsSearchOpen(false);
-                  setSearchQuery('');
-                  soundManager.playPop();
-                }}
-                className={`px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-full shrink-0 transition-all ${
-                  isChef 
-                    ? 'bg-[#F5ECE1] text-[#7A543E] hover:bg-[#EBDDCB]' 
-                    : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
-                }`}
-              >
-                收起
-              </button>
-            </div>
-          )}
-
-          {/* 分類篩選橫條 */}
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            categoryCounts={categoryCounts}
-            categories={categories}
-            onOpenManageCategories={() => setIsCategoryManageOpen(true)}
-            isAdminUnlocked={isAdminUnlocked}
-          />
-        </div>
-
-        {/* 電腦/平板雙模式切換膠囊按鈕（手機模式下由底部 BottomNav 承接，故手機下完全隱藏） */}
+        {/* 電腦/平板多模式切換膠囊按鈕（手機模式下由頂部 Header 待踩點按鈕與底部 BottomNav 承接，故手機下完全隱藏） */}
         <div className="hidden sm:flex justify-end px-1">
           <div className={`inline-flex items-center p-1 rounded-2xl border shrink-0 ${
             isChef ? 'bg-[#FFFDF9] border-[#EADFCF]' : 'bg-white border-[#E5DDD2] shadow-soft'
@@ -468,8 +455,108 @@ export const App: React.FC = () => {
               <Store className="w-4 h-4" />
               <span>餐廳資訊</span>
             </button>
+            <button
+              type="button"
+              onClick={() => { handleToggleViewMode('wishlist'); soundManager.playPop(); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-black transition-all cursor-pointer ${
+                viewMode === 'wishlist'
+                  ? (isChef ? 'bg-[#D85A2A] text-white shadow-sm' : 'bg-japandi-apricot text-white shadow-soft')
+                  : (isChef ? 'text-[#8A5A38] hover:text-[#D85A2A]' : 'text-japandi-text-muted hover:text-japandi-text')
+              }`}
+            >
+              <Pin className="w-4 h-4" />
+              <span>待踩點</span>
+              {wishlistRestaurants.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-xs font-black ${
+                  viewMode === 'wishlist'
+                    ? 'bg-white text-[#D85A2A]'
+                    : (isChef ? 'bg-[#F3A935] text-[#4A2613]' : 'bg-japandi-apricot text-white')
+                }`}>
+                  {wishlistRestaurants.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
+
+        {viewMode === 'wishlist' ? (
+          <WishlistPage
+            restaurants={wishlistRestaurants}
+            onMoveToVisited={handleMoveToVisited}
+            onOpenAddModal={() => {
+              setEditingRestaurant(null);
+              setFormDefaultWishlist(true);
+              setIsFormOpen(true);
+            }}
+            onViewDetail={(r) => setDetailRestaurant(r)}
+            onEdit={(r) => { setEditingRestaurant(r); setIsFormOpen(true); }}
+            onDelete={handleDeleteRestaurant}
+            onBackToMenu={() => handleToggleViewMode('menu')}
+            isAdminUnlocked={isAdminUnlocked}
+          />
+        ) : (
+          <>
+            {/* 搜尋與分類導覽列 (置中精緻寬度) */}
+            <div className="max-w-2xl mx-auto w-full space-y-2 sm:space-y-3">
+              {/* 展開式藥丸全圓角搜尋列 (由 Header 搜尋按鈕觸發) */}
+              {isSearchOpen && (
+                <div className="animate-fadeIn flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className={`w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 ${
+                      isChef ? 'text-[#8A5A3C]' : 'text-japandi-text-muted'
+                    }`} />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={isChef ? "搜尋想吃的招牌美食、漢堡或店家..." : "搜尋想吃的食物或店家..."}
+                      className={`w-full pl-11 pr-14 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base shadow-soft transition-all ${
+                        isChef
+                          ? 'border-2 border-[#E8D2B5] focus:border-[#F3A935] bg-white text-[#4A2613] placeholder-[#9D765A] focus:outline-none'
+                          : 'border border-[#E4DCCE] focus:border-japandi-sage bg-white/90 text-japandi-text placeholder-japandi-text-muted focus:outline-none'
+                      }`}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold rounded-full px-2.5 py-1 ${
+                          isChef 
+                            ? 'bg-[#F5ECE1] text-[#7A543E] hover:text-[#4A2613]' 
+                            : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
+                        }`}
+                      >
+                        清除
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                      soundManager.playPop();
+                    }}
+                    className={`px-3.5 py-2.5 text-xs sm:text-sm font-bold rounded-full shrink-0 transition-all ${
+                      isChef 
+                        ? 'bg-[#F5ECE1] text-[#7A543E] hover:bg-[#EBDDCB]' 
+                        : 'bg-japandi-oat text-japandi-text-muted hover:text-japandi-text'
+                    }`}
+                  >
+                    收起
+                  </button>
+                </div>
+              )}
+
+              {/* 分類篩選橫條 */}
+              <CategoryFilter
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                categoryCounts={categoryCounts}
+                categories={categories}
+                onOpenManageCategories={() => setIsCategoryManageOpen(true)}
+                isAdminUnlocked={isAdminUnlocked}
+              />
+            </div>
 
         {/* 店家卡片清單 (店家圖鑑: 手機1/平板2/電腦3；餐廳菜單: 手機2/平板3/電腦5) */}
         {isLoading ? (
@@ -600,6 +687,8 @@ export const App: React.FC = () => {
             )}
           </div>
         )}
+        </>
+      )}
       </main>
 
       {/* 詳細資訊彈窗 */}
@@ -612,15 +701,17 @@ export const App: React.FC = () => {
           setIsFormOpen(true);
         }}
         onDelete={handleDeleteRestaurant}
+        onMoveToVisited={handleMoveToVisited}
         isAdminUnlocked={isAdminUnlocked}
       />
 
       {/* 新增 / 編輯店家彈窗 */}
       <RestaurantFormModal
-        key={editingRestaurant ? `edit-${editingRestaurant.id}` : 'new-restaurant'}
+        key={editingRestaurant ? `edit-${editingRestaurant.id}` : `new-${formDefaultWishlist ? 'wish' : 'normal'}`}
         isOpen={isFormOpen}
         initialData={editingRestaurant}
-        onClose={() => { setIsFormOpen(false); setEditingRestaurant(null); }}
+        defaultIsWishlist={formDefaultWishlist}
+        onClose={() => { setIsFormOpen(false); setEditingRestaurant(null); setFormDefaultWishlist(false); }}
         onSave={handleSaveRestaurant}
         availableCategories={categories}
         onOpenManageCategories={() => setIsCategoryManageOpen(true)}
@@ -630,7 +721,7 @@ export const App: React.FC = () => {
       <CategoryRandomPickerModal
         isOpen={isRandomPickerOpen}
         onClose={() => setIsRandomPickerOpen(false)}
-        restaurants={restaurants}
+        restaurants={visitedRestaurants}
         onSelectRestaurant={(r) => setDetailRestaurant(r)}
         categories={categories}
       />

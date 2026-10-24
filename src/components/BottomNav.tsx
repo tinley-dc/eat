@@ -4,7 +4,7 @@ import { soundManager } from '../utils/sound';
 import { useTheme } from '../context/ThemeContext';
 
 interface BottomNavProps {
-  viewMode: 'menu' | 'store';
+  viewMode: 'menu' | 'store' | 'wishlist';
   onToggleViewMode: (mode: 'menu' | 'store') => void;
   onOpenRandomPicker: () => void;
 }

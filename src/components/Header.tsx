@@ -5,7 +5,8 @@ import {
   Dices,
   Lock,
   Unlock,
-  Search
+  Search,
+  Pin
 } from 'lucide-react';
 import { DoodleSun, ChefHatIcon } from './Doodles';
 import { soundManager } from '../utils/sound';
@@ -23,6 +24,9 @@ interface HeaderProps {
   isSearchOpen?: boolean;
   onToggleSearch?: () => void;
   hasSearchQuery?: boolean;
+  viewMode?: 'menu' | 'store' | 'wishlist';
+  onToggleWishlist?: () => void;
+  wishlistCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +39,9 @@ export const Header: React.FC<HeaderProps> = ({
   isSearchOpen = false,
   onToggleSearch,
   hasSearchQuery = false,
+  viewMode,
+  onToggleWishlist,
+  wishlistCount,
 }) => {
   const { theme } = useTheme();
   const isChef = theme === 'chef_menu';
@@ -100,6 +107,35 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Search className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">{isSearchOpen ? '收起' : '搜尋'}</span>
+            </button>
+          )}
+
+          {/* 待踩點口袋名單按鈕 📌 */}
+          {onToggleWishlist && (
+            <button
+              onClick={() => { onToggleWishlist(); soundManager.playPop(); }}
+              title="待踩點口袋名單（小孩尚未去過）"
+              className={`btn-pebble flex items-center justify-center gap-1 sm:gap-1.5 p-2 sm:px-3 sm:py-2 rounded-full font-bold text-xs sm:text-sm border transition-all shadow-soft select-none shrink-0 ${
+                viewMode === 'wishlist'
+                  ? (isChef
+                      ? 'bg-[#E86A43] text-white border-[#E86A43] shadow-md'
+                      : 'bg-japandi-apricot text-white border-transparent shadow-soft')
+                  : (isChef
+                      ? 'bg-white/10 hover:bg-white/20 active:bg-white/25 text-[#FFF4E0] border-white/20 backdrop-blur-md'
+                      : 'bg-white/90 hover:bg-japandi-oat text-japandi-text-muted hover:text-japandi-text border-[#EDE6DC] backdrop-blur-md')
+              }`}
+            >
+              <Pin className="w-4 h-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">待踩點</span>
+              {typeof wishlistCount === 'number' && wishlistCount > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black leading-tight ${
+                  viewMode === 'wishlist'
+                    ? 'bg-white text-[#D85A2A]'
+                    : (isChef ? 'bg-[#F3A935] text-[#4A2613]' : 'bg-japandi-apricot text-white')
+                }`}>
+                  {wishlistCount}
+                </span>
+              )}
             </button>
           )}
 

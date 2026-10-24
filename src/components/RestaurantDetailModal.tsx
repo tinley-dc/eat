@@ -26,6 +26,7 @@ interface RestaurantDetailModalProps {
   onClose: () => void;
   onEdit: (restaurant: Restaurant) => void;
   onDelete: (id: string, name: string) => void;
+  onMoveToVisited?: (restaurant: Restaurant) => void;
   isAdminUnlocked?: boolean;
 }
 
@@ -34,6 +35,7 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   onClose,
   onEdit,
   onDelete,
+  onMoveToVisited,
   isAdminUnlocked = false,
 }) => {
   // 彙整「店家整體照片」與「吃過什麼餐點照片」
@@ -345,6 +347,43 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
                 </div>
               )}
             </div>
+
+          {/* 待踩點狀態與一鍵踩點成功升級按鈕 */}
+          {restaurant.isWishlist && (
+            <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+              isChef ? 'bg-[#FFF7E8] border-[#F5B853]' : 'bg-[#FFF9F0] border-amber-300'
+            }`}>
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                  📌
+                </div>
+                <div>
+                  <h4 className="font-black text-sm sm:text-base text-amber-950">
+                    這是「待踩點」口袋店家（小孩尚未去過）
+                  </h4>
+                  <p className="text-xs text-amber-800/80 mt-0.5 leading-relaxed">
+                    小孩吃過這家餐廳且覺得很讚嗎？點擊按鈕即可立即升級移至「美味佳餚」與「餐廳資訊」！
+                  </p>
+                </div>
+              </div>
+              {onMoveToVisited && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onMoveToVisited(restaurant);
+                    onClose();
+                  }}
+                  className={`btn-pebble w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-soft transition-all cursor-pointer shrink-0 active:scale-95 ${
+                    isChef
+                      ? 'bg-gradient-to-r from-[#D85A2A] to-[#E86A43] hover:from-[#C24E22] hover:to-[#D55730]'
+                      : 'bg-gradient-to-r from-japandi-sage to-emerald-600 hover:from-japandi-sage-dark hover:to-emerald-700'
+                  }`}
+                >
+                  <span>🚩 踩點成功！移至美食名單</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* 快捷操作按鈕列（強化按鈕實體質感，與上方標籤完全區隔） */}
           <div className="flex flex-wrap items-center gap-2.5">
