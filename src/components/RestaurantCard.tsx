@@ -24,17 +24,19 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   const storePhotos = restaurant.images || [];
   const dishes = restaurant.dishes || [];
   const featuredDish = 
-    dishes.find((d) => d.id === restaurant.featuredDishId) ||
+    (restaurant.featuredDishId ? dishes.find((d) => d.id === restaurant.featuredDishId) : undefined) ||
+    dishes.find((d) => d.photos && d.photos.length > 0) ||
     dishes.find((d) => d.opinion === 'like') ||
     dishes[0];
 
-  // 封面照片優先級：指定封面 -> 第一張店家圖 -> 代表餐點照片 -> 預設圖
+  // 封面照片優先級：優先呈現餐點照片 -> 店家封面照 -> 第一張店家圖 -> 預設圖
   const coverUrl =
-    (storePhotos.length > 0 && restaurant.coverIndex !== undefined && storePhotos[restaurant.coverIndex])
+    (featuredDish?.photos && featuredDish.photos.length > 0 ? featuredDish.photos[0] : null) ||
+    (dishes.find(d => d.photos && d.photos.length > 0)?.photos?.[0]) ||
+    (storePhotos.length > 0 && restaurant.coverIndex !== undefined && storePhotos[restaurant.coverIndex]
       ? storePhotos[restaurant.coverIndex]
-      : (storePhotos.length > 0 ? storePhotos[0] : null) ||
-        (featuredDish?.photos && featuredDish.photos.length > 0 ? featuredDish.photos[0] : null) ||
-        DEFAULT_RESTAURANT_IMAGE;
+      : (storePhotos.length > 0 ? storePhotos[0] : null)) ||
+    DEFAULT_RESTAURANT_IMAGE;
 
   return (
     <div

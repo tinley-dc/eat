@@ -20,16 +20,18 @@ export const RestaurantMenuCard: React.FC<RestaurantMenuCardProps> = ({
   // 取得使用者設定的代表餐點（或第一道餐點備案）
   const dishes = restaurant.dishes || [];
   const featuredDish: DishRecord | undefined = 
-    dishes.find(d => d.id === restaurant.featuredDishId) ||
+    (restaurant.featuredDishId ? dishes.find(d => d.id === restaurant.featuredDishId) : undefined) ||
+    dishes.find(d => d.photos && d.photos.length > 0) ||
     (dishes.length > 0 ? dishes[0] : undefined);
 
-  // 代表餐點照片：優先取代表餐點的照片，若無則取店家照片，再無則使用預設圖
+  // 代表餐點照片：優先取餐點照片，若無則取店家照片，再無則使用預設圖
   const photoUrl = 
     (featuredDish?.photos && featuredDish.photos.length > 0)
       ? featuredDish.photos[0]
-      : (restaurant.images && restaurant.images.length > 0)
-      ? restaurant.images[restaurant.coverIndex || 0] || restaurant.images[0]
-      : DEFAULT_RESTAURANT_IMAGE;
+      : (dishes.find(d => d.photos && d.photos.length > 0)?.photos?.[0])
+      || (restaurant.images && restaurant.images.length > 0
+        ? (restaurant.images[restaurant.coverIndex || 0] || restaurant.images[0])
+        : DEFAULT_RESTAURANT_IMAGE);
 
   return (
     <div

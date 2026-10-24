@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Restaurant, DEFAULT_RESTAURANT_IMAGE } from '../types';
+import { Restaurant, DEFAULT_RESTAURANT_IMAGE, DishRecord } from '../types';
 import { 
   Pin, 
   Plus, 
@@ -262,10 +262,21 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
         /* 極簡美食卡片網格（與美味佳餚一致，附加營業時間，照片無文字標籤） */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-4.5">
           {filteredList.map((restaurant) => {
-            const storePhotos = restaurant.images || [];
-            const coverUrl = (storePhotos.length > 0 && restaurant.coverIndex !== undefined && storePhotos[restaurant.coverIndex])
-              ? storePhotos[restaurant.coverIndex]
-              : (storePhotos.length > 0 ? storePhotos[0] : null) || DEFAULT_RESTAURANT_IMAGE;
+            // 優先取餐點照片（代表餐點或有照片之餐點）
+            const dishes = restaurant.dishes || [];
+            const featuredDish: DishRecord | undefined = 
+              (restaurant.featuredDishId ? dishes.find(d => d.id === restaurant.featuredDishId) : undefined) ||
+              dishes.find(d => d.photos && d.photos.length > 0) ||
+              (dishes.length > 0 ? dishes[0] : undefined);
+
+            // 餐點照片：優先顯示餐點照片，若無才取店家封面照，再無則使用預設手繪圖
+            const photoUrl = 
+              (featuredDish?.photos && featuredDish.photos.length > 0)
+                ? featuredDish.photos[0]
+                : (dishes.find(d => d.photos && d.photos.length > 0)?.photos?.[0])
+                || (restaurant.images && restaurant.images.length > 0
+                  ? (restaurant.images[restaurant.coverIndex || 0] || restaurant.images[0])
+                  : DEFAULT_RESTAURANT_IMAGE);
 
             return (
               <div
@@ -280,11 +291,11 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                     : 'bg-white hover:bg-[#FAF8F5] border border-[#EBE3D7] hover:border-[#DCD2C3]'
                 } rounded-[24px] sm:rounded-[28px] p-2.5 sm:p-3 shadow-soft hover:shadow-float hover:-translate-y-1`}
               >
-                {/* 照片容器（正方形裁切，乾淨無任何文字標籤） */}
+                {/* 照片容器（正方形裁切，呈現美味餐點照片，乾淨無任何文字標籤） */}
                 <div className="relative aspect-square w-full rounded-[18px] sm:rounded-[22px] overflow-hidden bg-white shadow-2xs">
                   <SafeImage
-                    src={coverUrl}
-                    alt={restaurant.name}
+                    src={photoUrl}
+                    alt={featuredDish?.name ? `${restaurant.name} - ${featuredDish.name}` : restaurant.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                     loading="lazy"
                   />

@@ -41,7 +41,8 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
   isAdminUnlocked = false,
   onRequireAdminUnlock,
 }) => {
-  // 彙整「店家整體照片」與「吃過什麼餐點照片」
+  // 彙整「吃過什麼餐點照片」與「店家整體照片」
+  // 優先放入代表餐點與各道餐點照片，確保打開詳情時第一張照片與外層卡片顯示的餐點照片完全一致
   const carouselItems: {
     url: string;
     source: 'restaurant' | 'dish';
@@ -49,14 +50,15 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
     dishOpinion?: 'like' | 'dislike' | 'neutral';
   }[] = [];
 
-  (restaurant?.images || []).forEach(url => {
-    carouselItems.push({
-      url,
-      source: 'restaurant'
-    });
+  const dishes = restaurant?.dishes || [];
+  const featuredId = restaurant?.featuredDishId;
+  const sortedDishes = [...dishes].sort((a, b) => {
+    if (a.id === featuredId) return -1;
+    if (b.id === featuredId) return 1;
+    return 0;
   });
 
-  (restaurant?.dishes || []).forEach(dish => {
+  sortedDishes.forEach(dish => {
     (dish.photos || []).forEach(url => {
       carouselItems.push({
         url,
@@ -64,6 +66,13 @@ export const RestaurantDetailModal: React.FC<RestaurantDetailModalProps> = ({
         dishName: dish.name,
         dishOpinion: dish.opinion
       });
+    });
+  });
+
+  (restaurant?.images || []).forEach(url => {
+    carouselItems.push({
+      url,
+      source: 'restaurant'
     });
   });
 
